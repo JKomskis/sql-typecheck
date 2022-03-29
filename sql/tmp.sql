@@ -1,0 +1,1 @@
+SELECT students.ssn FROM students WHERE students.gpa < 3;
