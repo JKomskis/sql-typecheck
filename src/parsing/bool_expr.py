@@ -1,57 +1,107 @@
 from dataclasses import dataclass
-from parsy import generate, whitespace, eof
+from enum import Enum
+from typing import Tuple
+from parsy import generate, whitespace, string, index
 
-from src.parsing.terminals import bool_literal, string_ignore_case, lparen, rparen
+from src.parsing.int_expr import IExpr, i_expr
+from src.parsing.terminals import bool_literal, string_ignore_case, lparen, rparen, padding, c_name
+
 
 @dataclass
 class BExpr():
     pass
 
+
 @dataclass
 class BExprBoolLiteral(BExpr):
     value: bool
+
+
+@dataclass
+class BExprColumn(BExpr):
+    table_column_name: Tuple[str, str]
+
 
 @dataclass
 class BExprAnd(BExpr):
     left: BExpr
     right: BExpr
 
+
 @dataclass
 class BExprNot(BExpr):
     node: BExpr
 
+
+class EqualityOperator(Enum):
+    EQUALS = 1
+    LESS_THAN = 2
+
+
+@dataclass
+class BExprEquality(BExpr):
+    left: IExpr
+    op: EqualityOperator
+    right: IExpr
+
+
 @generate
-def b_expr_bool_literal():
+def b_expr_bool_literal() -> BExprBoolLiteral:
     value = yield bool_literal
 
     return BExprBoolLiteral(value)
 
+
+@generate
+def b_expr_column() -> BExprColumn:
+    name = yield c_name
+
+    return BExprColumn(name)
+
+
+@generate
+def b_expr_equality() -> BExprEquality:
+    left = yield i_expr
+    op_str = yield padding >> (string("=") | string("<")) << padding
+    op = None
+    if op_str == "=":
+        op = EqualityOperator.EQUALS
+    elif op_str == "<":
+        op = EqualityOperator.LESS_THAN
+    right = yield i_expr
+
+    return BExprEquality(left, op, right)
+
+
 @generate
 def b_expr() -> BExpr:
-    node = yield b_expr_internal
+    node = yield b_expr_negation
 
     while True:
-        more_to_parse = yield whitespace.optional()
-        if more_to_parse == None:
+        res = yield (whitespace >> string_ignore_case("AND") << whitespace).optional()
+        if res == None:
             break
-
-        yield string_ignore_case("AND")
-        yield whitespace
-        right = yield b_expr_internal
+        right = yield b_expr_negation
 
         node = BExprAnd(node, right)
 
     return node
 
+
 @generate
-def b_expr_internal() -> BExpr:
+def b_expr_negation() -> BExpr:
     negate = yield (string_ignore_case("NOT") << whitespace).optional()
-    node = yield b_expr_internal_internal
+    node = yield b_expr_paren_terminal
     if negate != None:
         node = BExprNot(node)
     return node
 
+
 @generate
-def b_expr_internal_internal() -> BExpr:
-    node = yield lparen >> b_expr << rparen | b_expr_bool_literal | b_expr
+def b_expr_paren_terminal() -> BExpr:
+    node = yield b_expr_bool_literal \
+        | b_expr_column \
+        | b_expr_equality \
+        | lparen >> b_expr << rparen \
+        | b_expr
     return node
