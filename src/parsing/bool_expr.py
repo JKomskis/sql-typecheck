@@ -3,12 +3,13 @@ from enum import Enum
 from typing import Tuple
 from parsy import generate, whitespace, string, index
 
+from src.parsing.data_structures import Expr
 from src.parsing.int_expr import IExpr, i_expr
 from src.parsing.terminals import bool_literal, string_ignore_case, lparen, rparen, padding, c_name
 
 
 @dataclass
-class BExpr():
+class BExpr(Expr):
     pass
 
 
@@ -100,8 +101,8 @@ def b_expr_negation() -> BExpr:
 @generate
 def b_expr_paren_terminal() -> BExpr:
     node = yield b_expr_bool_literal \
-        | b_expr_column \
         | b_expr_equality \
+        | b_expr_column \
         | lparen >> b_expr << rparen \
         | b_expr
     return node

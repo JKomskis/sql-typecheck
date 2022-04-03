@@ -3,11 +3,12 @@ from enum import Enum
 from typing import Tuple
 from parsy import generate, whitespace, string
 
+from src.parsing.data_structures import Expr
 from src.parsing.terminals import int_literal, lparen, rparen, c_name, padding
 
 
 @dataclass
-class IExpr():
+class IExpr(Expr):
     pass
 
 
