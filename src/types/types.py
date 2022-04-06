@@ -8,18 +8,20 @@ class Type:
     pass
 
 
-@dataclass
 class BaseType(Type, Enum):
     INT = "int"
     BOOL = "bool"
     # varchar, etc.
+
+    def __init__(self, name: str):
+        pass
 
 
 @dataclass
 class Schema(Type):
     fields: Dict[str, Type]
 
-    def is_subtype(self, other: Schema) -> bool:
+    def is_subtype(self, other) -> bool:
         for field_name, field_type in other.fields:
             if field_name not in self.fields or self.fields[field_name] != field_type:
                 return False
