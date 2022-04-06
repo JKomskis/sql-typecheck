@@ -7,16 +7,28 @@ from src.parsing.data_structures import Expr
 from src.parsing.expr import expr
 from src.parsing.terminals import string_ignore_case, padding, t_name, lparen, rparen, sep
 
+from src.types.symbol_table import SymbolTable
+from src.types.types import BaseType, Expression, RedefinedNameError, Schema, Type, TypeMismatchError
+
 
 @dataclass
 class Query():
-    pass
+    def type_check(self, st: SymbolTable) -> Type:
+        raise NotImplementedError(f"TODO: write typing rule for {type(self)}")
 
 
 @dataclass
 class QueryTable(Query):
     table_name: str
     output_table_name: str = None
+
+    def type_check(self, st: SymbolTable) -> Schema:
+        schema = st[self.table_name]
+        if self.output_table_name is None:
+            return schema
+        if self.output_table_name in st:
+            raise RedefinedNameError(self.output_table_name)
+        return schema  # maybe add to symbol table?
 
 
 @dataclass
@@ -25,6 +37,17 @@ class QueryJoin(Query):
     right: Query
     condition: BExpr
     output_name: str
+
+    def type_check(self, st: SymbolTable) -> Type:
+        left_schema = self.left.type_check(st)
+        right_schema = self.right.type_check(st)
+        concat_schema = left_schema | right_schema
+        cond_type = self.condition.type_check(st)
+        if cond_type.output is not BaseType.BOOL:
+            raise TypeMismatchError(cond_type, BaseType.BOOL)
+        if not concat_schema.is_subtype(cond_type.inputs):
+            raise TypeMismatchError(concat_schema, cond_type.inputs)
+        return concat_schema
 
 
 @dataclass

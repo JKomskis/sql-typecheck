@@ -5,10 +5,14 @@ from parsy import generate, whitespace
 from src.parsing.query import Query, query
 from src.parsing.terminals import identifier, string_ignore_case, t_name, c_name, lparen, rparen, type_literal, sep, padding
 
+from src.types.symbol_table import SymbolTable
+from src.types.types import Schema, Type
+
 
 @dataclass
 class Stmt():
-    pass
+    def type_check(self, st: SymbolTable) -> Type:
+        raise NotImplementedError(f"TODO: write typing rule for {type(self)}")
 
 
 @dataclass
@@ -35,10 +39,19 @@ class StmtCreateTable(Stmt):
 class StmtQuery(Stmt):
     query: Query
 
+    def type_check(self, st: SymbolTable) -> Type:
+        return query.type_check(st)
+
 
 @dataclass
 class StmtSequence(Stmt):
     stmts: List[Stmt]
+
+    def type_check(self) -> Schema:
+        ty = None
+        for stmt in self.stmts:
+            ty = stmt.type_check(st)
+        return ty
 
 
 @generate
