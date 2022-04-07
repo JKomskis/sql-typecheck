@@ -5,4 +5,5 @@ from src.types.types import Type
 
 @dataclass
 class SymbolTable(UserDict):
-    pass
+    def __init__(self, data={}):
+        super().__init__(data)

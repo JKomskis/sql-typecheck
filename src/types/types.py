@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Dict
 
 
-@dataclass
 class Type:
     pass
 
@@ -11,10 +10,7 @@ class Type:
 class BaseType(Type, Enum):
     INT = "int"
     BOOL = "bool"
-    # varchar, etc.
-
-    def __init__(self, name: str):
-        pass
+    VARCHAR = "varchar"
 
 
 @dataclass

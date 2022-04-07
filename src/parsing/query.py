@@ -42,9 +42,7 @@ class QueryJoin(Query):
         left_schema = self.left.type_check(st)
         right_schema = self.right.type_check(st)
         concat_schema = left_schema | right_schema
-        cond_type = self.condition.type_check(st)
-        if cond_type.output is not BaseType.BOOL:
-            raise TypeMismatchError(cond_type, BaseType.BOOL)
+        self.condition.expect_type(st, BaseType.BOOL)
         if not concat_schema.is_subtype(cond_type.inputs):
             raise TypeMismatchError(concat_schema, cond_type.inputs)
         return concat_schema
