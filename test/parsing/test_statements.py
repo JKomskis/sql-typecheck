@@ -114,3 +114,13 @@ class TestStmtSequence(unittest.TestCase):
                 ))
             ])
         )
+
+    def test_trailing_semicolon(self):
+        self.assertEqual(
+            stmt_sequence.parse(
+                """CREATE TABLE students (ssn INT, gpa INT, year INT, graduate BOOL);
+                   SELECT students.ssn FROM students WHERE students.graduate"""),
+            stmt_sequence.parse(
+                """CREATE TABLE students (ssn INT, gpa INT, year INT, graduate BOOL);
+                   SELECT students.ssn FROM students WHERE students.graduate;""")
+        )

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List
-from parsy import generate, whitespace
+from parsy import generate, whitespace, string
 
 from src.parsing.query import Query, query
 from src.parsing.terminals import identifier, string_ignore_case, t_name, c_name, lparen, rparen, type_literal, sep, padding
@@ -75,5 +75,5 @@ stmt = stmt_create_table | stmt_query
 
 @generate
 def stmt_sequence() -> StmtSequence:
-    stmts = yield stmt.sep_by(sep(";"), min=1)
+    stmts = yield stmt.sep_by(sep(";"), min=1) << string(";").optional()
     return StmtSequence(stmts)
