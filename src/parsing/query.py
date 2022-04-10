@@ -67,6 +67,19 @@ class QueryIntersect(Query):
         return ty
 
 @dataclass
+class QueryIntersectUnion(Query):
+    queries: List[QueryIntersect]
+    # shoudl be QuerySelect OR QueryIntersect
+
+    def type_check(self, st: SymbolTable) -> Type:
+        ty = self.queries[0].type_check(st)
+        for query in self.queries:
+            newty = query.type_check(st)
+            if not newty == ty:
+                raise TypeMismatchError(ty, newty)
+        return ty
+
+@dataclass
 class QueryUnion(Query):
     queries: List[QuerySelect]
     # shoudl be QuerySelect OR QueryIntersect
@@ -102,6 +115,7 @@ def query() -> Query:
 @generate
 def query_terminal() -> Query:
     node = yield query_table \
+        | query_intersect_union \
         | query_union \
         | query_intersect \
         | query_select \
@@ -136,12 +150,15 @@ def query_select() -> QuerySelect:
 @generate
 def query_intersect() -> QueryIntersect:
     queries = yield query_select.sep_by(sep("INTERSECT"), min=2)
-    if len(queries) == 1:
-        return queries[0]
     return QueryIntersect(queries)
 
 @generate
 def query_union() -> QueryUnion:
-    queries = yield (query_intersect | query_select).sep_by(sep("UNION"), min=2)
+    queries = yield query_select.sep_by(sep("UNION"), min=2)
     return QueryUnion(queries)
+
+@generate
+def query_intersect_union() -> QueryIntersectUnion:
+    queries = yield query_intersect.sep_by(sep("UNION"), min=2)
+    return QueryIntersectUnion(queries)
 
