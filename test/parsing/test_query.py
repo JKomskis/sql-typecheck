@@ -74,7 +74,7 @@ class TestQueryUnion(unittest.TestCase):
     def test_query_union(self):
         self.assertEqual(
             query.parse(
-                "SELECT students.ssn FROM students WHERE students.graduate \
+                "SELECT students.ssn FROM students WHERE students.graduate\
                     UNION SELECT students.ssn FROM students WHERE students.graduate"),
             QueryUnion([
             QuerySelect(
