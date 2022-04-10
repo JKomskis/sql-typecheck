@@ -6,7 +6,7 @@ from src.parsing.query import Query, query
 from src.parsing.terminals import identifier, string_ignore_case, t_name, c_name, lparen, rparen, type_literal, sep, padding
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import Schema, Type
+from src.types.types import Schema, Type, TypeMismatchError
 
 
 @dataclass
@@ -44,6 +44,33 @@ class StmtQuery(Stmt):
 
 
 @dataclass
+class StmtUnion(Stmt):
+    queries: List[Query]
+
+    # there should probably be some subtyping here
+    def type_check(self) -> Type:
+        ty = self.queries[0].type_check(st)
+        for query in self.queries:
+            newty = query.type_check(st)
+            if not newty == ty:
+                raise TypeMismatchError(ty, newty)
+        return ty
+
+@dataclass
+class StmtIntersect(Stmt):
+    queries: List[Query]
+
+    # there should probably be some subtyping here
+    def type_check(self) -> Type:
+        ty = self.queries[0].type_check(st)
+        for query in self.queries:
+            newty = query.type_check(st)
+            if not newty == ty:
+                raise TypeMismatchError(ty, newty)
+        return ty
+
+
+@dataclass
 class StmtSequence(Stmt):
     stmts: List[Stmt]
 
@@ -70,8 +97,21 @@ def stmt_query() -> StmtQuery:
     return StmtQuery(node)
 
 
-stmt = stmt_create_table | stmt_query
+@generate
+def stmt_union() -> StmtUnion:
+    # set min queries to two, otherwise it's just a query?
+    # Q: how to elegantly handle UNION ALL
+    queries = yield query.sep_by(sep("UNION"), min=2) << string("\n").optional()
+    return StmtUnion(queries)
 
+@generate
+def stmt_intersect() -> StmtIntersect:
+    # set min queries to two, otherwise it's just a query
+    queries = yield query.sep_by(sep("INTERSECT"), min=2)
+    return StmtIntersect(queries)
+
+
+stmt = stmt_create_table | stmt_union | stmt_query | stmt_intersect
 
 @generate
 def stmt_sequence() -> StmtSequence:
