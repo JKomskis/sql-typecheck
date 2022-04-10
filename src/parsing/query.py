@@ -54,6 +54,18 @@ class QuerySelect(Query):
     from_query: Query
     condition: BExpr = None
 
+@dataclass
+class QueryUnion(Query):
+    sel_queries: List[QuerySelect]
+
+    def type_check(self, st: SymbolTable) -> Type:
+        ty = self.queries[0].type_check(st)
+        for query in self.queries:
+            newty = query.type_check(st)
+            if not newty == ty:
+                raise TypeMismatchError(ty, newty)
+        return ty
+
 
 @generate
 def query() -> Query:
@@ -77,7 +89,7 @@ def query() -> Query:
 @generate
 def query_terminal() -> Query:
     node = yield query_table \
-        | query_select \
+        | query_union \
         | lparen >> query << rparen
     return node
 
@@ -104,3 +116,11 @@ def query_select() -> QuerySelect:
     if where_token != None:
         condition = yield b_expr
     return QuerySelect(expressions, from_query, condition)
+
+
+@generate
+def query_union() -> QueryUnion:
+    sel_queries = yield query_select.sep_by(sep("UNION"), min=1)
+    if len(sel_queries) == 1:
+        return sel_queries[0]
+    return QueryUnion(sel_queries)

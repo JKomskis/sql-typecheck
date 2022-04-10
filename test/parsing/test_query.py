@@ -3,7 +3,7 @@ from src.parsing.bool_expr import BExprBoolLiteral, BExprColumn, BExprEquality, 
 from src.parsing.expr import ExprColumn
 from src.parsing.int_expr import IExprColumn, IExprIntLiteral
 
-from src.parsing.query import QueryJoin, QuerySelect, QueryTable, query
+from src.parsing.query import QueryJoin, QuerySelect, QueryUnion, QueryTable, query
 
 
 class TestQueryTable(unittest.TestCase):
@@ -68,6 +68,30 @@ class TestQuerySelect(unittest.TestCase):
                 )
             )
         )
+
+
+class TestQueryUnion(unittest.TestCase):
+    def test_query_union(self):
+        self.assertEqual(
+            query.parse(
+                "SELECT students.ssn FROM students WHERE students.graduate \
+                    UNION SELECT students.ssn FROM students WHERE students.graduate"),
+            QueryUnion([
+            QuerySelect(
+                [ExprColumn(("students", "ssn"))],
+                QueryTable("students"),
+                BExprColumn(("students", "graduate"))
+            ), 
+            QuerySelect(
+                [ExprColumn(("students", "ssn"))],
+                QueryTable("students"),
+                BExprColumn(("students", "graduate"))
+            )
+            ])
+        )
+
+
+
 
 
 class TestQueryJoin(unittest.TestCase):

@@ -2,8 +2,8 @@ import unittest
 from src.parsing.bool_expr import BExprColumn, BExprEquality, EqualityOperator
 from src.parsing.int_expr import IExprColumn
 
-from src.parsing.statements import StmtCreateTable, StmtQuery, StmtUnion, StmtSequence, TableElement, stmt_create_table, stmt_sequence
-from src.parsing.query import QueryJoin, QuerySelect, QueryTable
+from src.parsing.statements import StmtCreateTable, StmtQuery, StmtSequence, TableElement, stmt_create_table, stmt_sequence
+from src.parsing.query import QueryJoin, QuerySelect, QuerySelect, QueryTable
 from src.parsing.expr import ExprColumn
 
 
@@ -53,32 +53,6 @@ class TestStmtQuery(unittest.TestCase):
                 ),
                 "s_e"
             ))])
-        )
-
-
-class TestStmtUnion(unittest.TestCase):
-    def test_stmt_union(self):
-        self.assertEqual(
-            stmt_sequence.parse(
-                "students UNION enrolled"),
-            StmtSequence([StmtUnion([(QueryTable("students")), (QueryTable("enrolled"))])])
-        )
-        self.assertEqual(
-            stmt_sequence.parse(
-                "SELECT students.ssn FROM students WHERE students.graduate \
-                    UNION SELECT students.ssn FROM students WHERE students.graduate"),
-            StmtSequence(StmtUnion([
-            QuerySelect(
-                [ExprColumn(("students", "ssn"))],
-                QueryTable("students"),
-                BExprColumn(("students", "graduate"))
-            ), 
-            QuerySelect(
-                [ExprColumn(("students", "ssn"))],
-                QueryTable("students"),
-                BExprColumn(("students", "graduate"))
-            )
-            ]))
         )
 
 
