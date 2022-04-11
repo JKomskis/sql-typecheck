@@ -3,7 +3,7 @@ from src.parsing.bool_expr import BExprBoolLiteral, BExprColumn, BExprEquality, 
 from src.parsing.expr import ExprColumn
 from src.parsing.int_expr import IExprColumn, IExprIntLiteral
 
-from src.parsing.query import QueryJoin, QuerySelect, QueryUnion, QueryTable, query
+from src.parsing.query import QueryJoin, QuerySelect, QueryUnion, QueryIntersect, QueryIntersectUnion, QueryTable, query
 
 
 class TestQueryTable(unittest.TestCase):
@@ -75,8 +75,29 @@ class TestQueryUnion(unittest.TestCase):
         self.assertEqual(
             query.parse(
                 "SELECT students.ssn FROM students WHERE students.graduate\
-                    UNION SELECT students.ssn FROM students WHERE students.graduate"),
+                    UNION SELECT students.ssn FROM students WHERE students.undergraduate"),
             QueryUnion([
+            QuerySelect(
+                [ExprColumn(("students", "ssn"))],
+                QueryTable("students"),
+                BExprColumn(("students", "graduate"))
+            ), 
+            QuerySelect(
+                [ExprColumn(("students", "ssn"))],
+                QueryTable("students"),
+                BExprColumn(("students", "undergraduate"))
+            )
+            ])
+        )
+
+
+class TestQueryIntersect(unittest.TestCase):
+    def test_query_union(self):
+        self.assertEqual(
+            query.parse(
+                "SELECT students.ssn FROM students WHERE students.graduate\
+                    INTERSECT SELECT students.ssn FROM students WHERE students.graduate"),
+            QueryIntersect([
             QuerySelect(
                 [ExprColumn(("students", "ssn"))],
                 QueryTable("students"),
@@ -91,6 +112,43 @@ class TestQueryUnion(unittest.TestCase):
         )
 
 
+
+class TestQueryIntersectUnion(unittest.TestCase):
+    def test_query_union(self):
+        self.assertEqual(
+            query.parse(
+                "SELECT students.ssn FROM students WHERE students.graduate\
+                    INTERSECT SELECT students.ssn FROM students WHERE students.undergraduate\
+                    UNION \
+                    SELECT students.ssn FROM students WHERE students.enrolled\
+                    INTERSECT SELECT students.ssn FROM students WHERE students.graduate"),
+            QueryIntersectUnion([
+                QueryIntersect([
+                QuerySelect(
+                    [ExprColumn(("students", "ssn"))],
+                    QueryTable("students"),
+                    BExprColumn(("students", "graduate"))
+                ), 
+                QuerySelect(
+                    [ExprColumn(("students", "ssn"))],
+                    QueryTable("students"),
+                    BExprColumn(("students", "undergraduate"))
+                )
+                ]),
+                QueryIntersect([
+                QuerySelect(
+                    [ExprColumn(("students", "ssn"))],
+                    QueryTable("students"),
+                    BExprColumn(("students", "enrolled"))
+                ), 
+                QuerySelect(
+                    [ExprColumn(("students", "ssn"))],
+                    QueryTable("students"),
+                    BExprColumn(("students", "graduate"))
+                )
+                ])
+            ])
+        )
 
 
 
