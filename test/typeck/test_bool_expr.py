@@ -1,6 +1,7 @@
 import unittest
 
 from src.parsing.bool_expr import BExprAnd, BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator
+from src.parsing.int_expr import IExprIntLiteral
 
 from src.types.symbol_table import SymbolTable
 from src.types.types import BaseType, Schema, TypeCheckingError, TypeMismatchError
@@ -69,6 +70,62 @@ class TestEquality(unittest.TestCase):
                 EqualityOperator.EQUALS,
                 BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN, BExprBoolLiteral(True)
                               ).type_check(SymbolTable()))
+
+    def test_equals_int(self):
+        self.assertEqual(BExprEquality(IExprIntLiteral(2), EqualityOperator.EQUALS,
+                         IExprIntLiteral(3)).type_check(SymbolTable()), BaseType.BOOL)
+        self.assertEqual(BExprEquality(IExprIntLiteral(-3), EqualityOperator.LESS_THAN,
+                         IExprIntLiteral(3)).type_check(SymbolTable()), BaseType.BOOL)
+        with self.assertRaises(TypeCheckingError):
+            BExprEquality(IExprIntLiteral(0), EqualityOperator.LESS_THAN,
+                          BExprBoolLiteral(False)).type_check(SymbolTable())
+        with self.assertRaises(TypeCheckingError):
+            BExprEquality(BExprBoolLiteral(True), EqualityOperator.EQUALS,
+                          IExprIntLiteral(1)).type_check(SymbolTable())
+
+    def test_equals_and_int(self):
+        self.assertEqual(BExprEquality(
+            BExprEquality(
+                IExprIntLiteral(-1),
+                EqualityOperator.EQUALS,
+                IExprIntLiteral(1)
+            ),
+            EqualityOperator.EQUALS,
+            BExprBoolLiteral(True)
+        ).type_check(SymbolTable()), BaseType.BOOL)
+        self.assertEqual(BExprAnd(
+            BExprEquality(
+                IExprIntLiteral(42),
+                EqualityOperator.EQUALS,
+                IExprIntLiteral(42)
+            ),
+            BExprEquality(
+                IExprIntLiteral(-6),
+                EqualityOperator.EQUALS,
+                IExprIntLiteral(-9)
+            )
+        ).type_check(SymbolTable()), BaseType.BOOL)
+        self.assertEqual(BExprAnd(
+            BExprEquality(
+                IExprIntLiteral(42),
+                EqualityOperator.EQUALS,
+                IExprIntLiteral(42)
+            ),
+            BExprEquality(
+                BExprBoolLiteral(True),
+                EqualityOperator.EQUALS,
+                BExprBoolLiteral(False)
+            )
+        ).type_check(SymbolTable()), BaseType.BOOL)
+        with self.assertRaises(TypeCheckingError):
+            BExprAnd(
+                BExprEquality(
+                    IExprIntLiteral(-1),
+                    EqualityOperator.EQUALS,
+                    IExprIntLiteral(1)
+                ),
+                IExprIntLiteral(0)
+            ).type_check(SymbolTable())
 
 
 class TestColumn(unittest.TestCase):
