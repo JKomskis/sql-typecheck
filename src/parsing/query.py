@@ -154,7 +154,9 @@ def query_intersect() -> QueryIntersect:
 
 @generate
 def query_union() -> QueryUnion:
-    queries = yield query_select.sep_by(sep("UNION"), min=2)
+    queries = yield  query_select.sep_by(sep("UNION"), min=2) 
+    # string("ALL").optional() -> handle "UNION ALL" separator as well 
+    # (is there a way to have several tokenizer strings?)
     return QueryUnion(queries)
 
 @generate
