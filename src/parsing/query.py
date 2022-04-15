@@ -53,6 +53,7 @@ class QuerySelect(Query):
     select_list: List[Expr]
     from_query: Query
     condition: BExpr = None
+    groupby: str = None
 
 @dataclass
 class QueryIntersect(Query):
@@ -144,7 +145,13 @@ def query_select() -> QuerySelect:
     where_token = yield (whitespace >> string_ignore_case("WHERE") << whitespace).optional()
     if where_token != None:
         condition = yield b_expr
-    return QuerySelect(expressions, from_query, condition)
+
+    groupby = None
+    groupby_token = yield (whitespace >> string_ignore_case("GROUPBY") << whitespace).optional()
+    if groupby_token != None:
+        groupby = yield t_name
+
+    return QuerySelect(expressions, from_query, condition, groupby)
 
 
 @generate
