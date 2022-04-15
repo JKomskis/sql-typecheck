@@ -147,7 +147,7 @@ def query_select() -> QuerySelect:
         condition = yield b_expr
 
     groupby = None
-    groupby_token = yield (whitespace >> string_ignore_case("GROUPBY") << whitespace).optional()
+    groupby_token = yield (whitespace >> string_ignore_case("GROUP BY") << whitespace).optional()
     if groupby_token != None:
         groupby = yield t_name
 
