@@ -33,9 +33,8 @@ class BExprColumn(BExpr):
 
     def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
-        table_schema = st[table]
         return Expression(
-            Schema({table_schema.fields[col], BaseType.BOOL}),
+            Schema({f"{table}.{col}": BaseType.BOOL}),
             BaseType.BOOL
         )
 
