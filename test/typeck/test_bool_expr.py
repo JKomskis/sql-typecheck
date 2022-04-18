@@ -4,7 +4,7 @@ from src.parsing.bool_expr import BExprAnd, BExprBoolLiteral, BExprColumn, BExpr
 from src.parsing.int_expr import IExprIntLiteral
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Schema, TypeCheckingError, TypeMismatchError
+from src.types.types import BaseType, Expression, Schema, TypeCheckingError, TypeMismatchError
 
 
 class TestLiteral(unittest.TestCase):
@@ -20,13 +20,13 @@ class TestLiteral(unittest.TestCase):
 class TestAnd(unittest.TestCase):
     def test_and_literals(self):
         self.assertEqual(BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(
-            True)).type_check(SymbolTable()), BaseType.BOOL)
+            True)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
     def test_and_nested(self):
         self.assertEqual(BExprAnd(
             BExprBoolLiteral(True),
             BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(True))
-        ).type_check(SymbolTable()), BaseType.BOOL)
+        ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
         self.assertEqual(BExprAnd(
             BExprAnd(
                 BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(True)),

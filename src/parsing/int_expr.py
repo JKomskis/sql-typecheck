@@ -7,7 +7,8 @@ from src.parsing.data_structures import Expr
 from src.parsing.terminals import int_literal, lparen, rparen, c_name, padding
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType
+from src.types.types import BaseType, Expression, Schema
+
 
 @dataclass
 class IExpr(Expr):
@@ -18,18 +19,24 @@ class IExpr(Expr):
 class IExprIntLiteral(IExpr):
     value: int
 
-    def type_check(self, _: SymbolTable) -> BaseType:
-        return BaseType.INT
+    def type_check(self, _: SymbolTable) -> Expression:
+        return Expression(
+            Schema({}),
+            BaseType.INT
+        )
 
 
 @dataclass
 class IExprColumn(IExpr):
     table_column_name: Tuple[str, str]
 
-    def type_check(self, st: SymbolTable) -> BaseType:
+    def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
         table_schema = st[table]
-        return table_schema.fields[col]
+        return Expression(
+            Schema({table_schema.fields[col]: BaseType.INT}),
+            BaseType.INT
+        )
 
 
 class BinaryIntOp(Enum):
@@ -43,9 +50,13 @@ class IExprBinaryOp(IExpr):
     op: BinaryIntOp
     right: IExpr
 
-    def type_check(self, st: SymbolTable) -> BaseType:
-        self.left.expect_type(st, BaseType.INT)
-        return self.right.expect_type(st, BaseType.INT)
+    def type_check(self, st: SymbolTable) -> Expression:
+        left_type = self.left.type_check(st)
+        right_type = self.right.type_check(st)
+        return Expression(
+            Schema.concat(left_type.inputs, right_type.inputs),
+            BaseType.INT
+        )
 
 
 @generate

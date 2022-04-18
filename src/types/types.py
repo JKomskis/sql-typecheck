@@ -8,9 +8,9 @@ class Type:
 
 
 class BaseType(Type, Enum):
-    INT = "int"
-    BOOL = "bool"
-    VARCHAR = "varchar"
+    INT = "INT"
+    BOOL = "BOOL"
+    VARCHAR = "VARCHAR"
 
 
 @dataclass
@@ -22,6 +22,12 @@ class Schema(Type):
             if field_name not in self.fields or self.fields[field_name] != field_type:
                 return False
         return True
+
+    @classmethod
+    def concat(cls, left, right):
+        new_fields = left.fields
+        new_fields.update(right.fields)
+        return Schema(new_fields)
 
 
 @dataclass
@@ -50,3 +56,11 @@ class TypeMismatchError(TypeCheckingError):
 
     def __init__(self, want: Type, got: Type):
         super().__init__(f"want {want}, got {got}")
+
+
+@dataclass
+class NameMissingError(TypeCheckingError):
+    name: str
+
+    def __init__(self, name: str):
+        super().__init__(name)

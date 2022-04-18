@@ -3,8 +3,9 @@ from src.parsing.bool_expr import BExprColumn, BExprEquality, EqualityOperator
 from src.parsing.int_expr import IExprColumn
 
 from src.parsing.statements import StmtCreateTable, StmtQuery, StmtSequence, TableElement, stmt_create_table, stmt_sequence
-from src.parsing.query import QueryJoin, QuerySelect, QuerySelect, QueryTable
+from src.parsing.query import QueryJoin, QuerySelect, QueryTable
 from src.parsing.expr import ExprColumn
+from src.types.types import BaseType
 
 
 class TestStmtCreate(unittest.TestCase):
@@ -15,10 +16,10 @@ class TestStmtCreate(unittest.TestCase):
             StmtSequence([StmtCreateTable(
                 "students",
                 [
-                    TableElement("ssn", "INT"),
-                    TableElement("gpa", "INT"),
-                    TableElement("year", "INT"),
-                    TableElement("graduate", "BOOL"),
+                    TableElement("ssn", BaseType.INT),
+                    TableElement("gpa", BaseType.INT),
+                    TableElement("year", BaseType.INT),
+                    TableElement("graduate", BaseType.BOOL),
                 ]
             )])
         )
@@ -56,7 +57,6 @@ class TestStmtQuery(unittest.TestCase):
         )
 
 
-
 class TestStmtSequence(unittest.TestCase):
     def test_stmt_sequence(self):
         self.assertEqual(
@@ -67,10 +67,10 @@ class TestStmtSequence(unittest.TestCase):
                 StmtCreateTable(
                     "students",
                     [
-                        TableElement("ssn", "INT"),
-                        TableElement("gpa", "INT"),
-                        TableElement("year", "INT"),
-                        TableElement("graduate", "BOOL"),
+                        TableElement("ssn", BaseType.INT),
+                        TableElement("gpa", BaseType.INT),
+                        TableElement("year", BaseType.INT),
+                        TableElement("graduate", BaseType.BOOL),
                     ]
                 ),
                 StmtQuery(QuerySelect(
@@ -89,18 +89,18 @@ class TestStmtSequence(unittest.TestCase):
                 StmtCreateTable(
                     "students",
                     [
-                        TableElement("id", "INT"),
-                        TableElement("gpa", "INT"),
-                        TableElement("year", "INT"),
-                        TableElement("graduate", "BOOL"),
+                        TableElement("id", BaseType.INT),
+                        TableElement("gpa", BaseType.INT),
+                        TableElement("year", BaseType.INT),
+                        TableElement("graduate", BaseType.BOOL),
                     ]
                 ),
                 StmtCreateTable(
                     "enrolled",
                     [
-                        TableElement("id", "INT"),
-                        TableElement("grade", "INT"),
-                        TableElement("dropped", "BOOL"),
+                        TableElement("id", BaseType.INT),
+                        TableElement("grade", BaseType.INT),
+                        TableElement("dropped", BaseType.BOOL),
                     ]
                 ),
                 StmtQuery(QueryJoin(

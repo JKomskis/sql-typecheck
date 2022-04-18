@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 from parsy import generate, whitespace, string
 
 from src.parsing.bool_expr import BExpr, b_expr
@@ -8,13 +8,17 @@ from src.parsing.expr import expr
 from src.parsing.terminals import string_ignore_case, padding, t_name, lparen, rparen, sep
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, RedefinedNameError, Schema, Type, TypeMismatchError
+from src.types.types import BaseType, Expression, NameMissingError, RedefinedNameError, Schema, Type, TypeMismatchError
 
 
 @dataclass
 class Query():
-    def type_check(self, st: SymbolTable) -> Type:
+    def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
         raise NotImplementedError(f"TODO: write typing rule for {type(self)}")
+
+    def get_output_table_name(self) -> str:
+        raise NotImplementedError(
+            f"TODO: write get_output_table_name for {type(self)}")
 
 
 @dataclass
@@ -22,13 +26,21 @@ class QueryTable(Query):
     table_name: str
     output_table_name: str = None
 
-    def type_check(self, st: SymbolTable) -> Schema:
+    def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
+        if self.table_name not in st:
+            raise NameMissingError(self.table_name)
         schema = st[self.table_name]
         if self.output_table_name is None:
-            return schema
+            return self.table_name, schema
+
         if self.output_table_name in st:
             raise RedefinedNameError(self.output_table_name)
-        return schema  # maybe add to symbol table?
+        return self.output_table_name, schema
+
+    def get_output_table_name(self) -> str:
+        if self.output_table_name != None:
+            return self.output_table_name
+        return self.table_name
 
 
 @dataclass
@@ -38,7 +50,7 @@ class QueryJoin(Query):
     condition: BExpr
     output_name: str
 
-    def type_check(self, st: SymbolTable) -> Type:
+    def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
         left_schema = self.left.type_check(st)
         right_schema = self.right.type_check(st)
         concat_schema = left_schema | right_schema
@@ -46,6 +58,9 @@ class QueryJoin(Query):
         if not concat_schema.is_subtype(cond_type.inputs):
             raise TypeMismatchError(concat_schema, cond_type.inputs)
         return concat_schema
+
+    def get_output_table_name(self) -> str:
+        return self.output_name
 
 
 @dataclass
@@ -92,6 +107,21 @@ class QueryUnion(Query):
             if not newty == ty:
                 raise TypeMismatchError(ty, newty)
         return ty
+
+    def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
+        from_schema = self.from_query.type_check(st)
+        condition_type = self.condition.type_check(st)
+        # Todo: check if from_schema is a subtype of condition type schema
+
+        schema = Schema({})
+        for select_expr in self.select_list:
+            expr_type = select_expr.type_check(st)
+            # Todo: check if from_schema is a subtype of expression schema
+
+        return self.get_output_table_name(), schema
+
+    def get_output_table_name(self) -> str:
+        return self.from_query.get_output_table_name()
 
 
 @generate
