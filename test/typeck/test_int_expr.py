@@ -53,7 +53,13 @@ class TestColumn(unittest.TestCase):
             IExprColumn(("a", "z")).type_check(st)
         with self.assertRaises(KeyError):
             IExprColumn(("c", "b")).type_check(st)
-        # TODO: Handle matching column names
+        st = SymbolTable({
+            "a1": Schema({"b": BaseType.INT}),
+            "a2": Schema({"b": BaseType.BOOL}),
+        })
+        self.assertEqual(IExprColumn(("a1", "b")).type_check(st),
+            Expression(Schema({"a1.b": BaseType.INT}), BaseType.INT))
+        # should we test xplicitly that type checking IExprColumn(a2.b) errors?
 
     def test_column_bin_op(self):
         st = SymbolTable({
