@@ -19,7 +19,7 @@ class TestLiteral(unittest.TestCase):
 class TestBinaryOp(unittest.TestCase):
     def test_bin_op_literals(self):
         self.assertEqual(IExprBinaryOp(IExprIntLiteral(
-            9), BinaryIntOp.ADDITION, IExprIntLiteral(10)).type_check(SymbolTable()), 
+            9), BinaryIntOp.ADDITION, IExprIntLiteral(10)).type_check(SymbolTable()),
                 Expression(Schema({}), BaseType.INT))
 
     def test_bin_op_nested(self):
@@ -47,13 +47,12 @@ class TestColumn(unittest.TestCase):
         st = SymbolTable({
             "a": Schema({"b": BaseType.INT}),
         })
-        self.assertEqual(IExprColumn(("a", "b")).type_check(st), 
+        self.assertEqual(IExprColumn(("a", "b")).type_check(st),
             Expression(Schema({"a.b": BaseType.INT}), BaseType.INT))
         with self.assertRaises(KeyError):
             IExprColumn(("a", "z")).type_check(st)
         with self.assertRaises(KeyError):
             IExprColumn(("c", "b")).type_check(st)
-        # TODO: Handle above error
         # TODO: Handle matching column names
 
     def test_column_bin_op(self):
@@ -69,7 +68,7 @@ class TestColumn(unittest.TestCase):
             BinaryIntOp.ADDITION,
             IExprColumn(("a", "j"))
         ).type_check(st), Expression(
-            Schema({"a.i": BaseType.INT, "a.j": BaseType.INT}), 
+            Schema({"a.i": BaseType.INT, "a.j": BaseType.INT}),
             BaseType.INT))
 
         self.assertEqual(IExprBinaryOp(
@@ -77,9 +76,9 @@ class TestColumn(unittest.TestCase):
             BinaryIntOp.MULTIPLICATION,
             IExprIntLiteral(1000)
         ).type_check(st), Expression(
-            Schema({"a.i": BaseType.INT}), 
+            Schema({"a.i": BaseType.INT}),
             BaseType.INT))
-        
+
         self.assertEqual(IExprBinaryOp(
             IExprColumn(("a", "j")),
             BinaryIntOp.ADDITION,
@@ -89,7 +88,7 @@ class TestColumn(unittest.TestCase):
                 IExprColumn(("a", "j"))
             )
         ).type_check(st), Expression(
-            Schema({"a.j": BaseType.INT, "a.j" : BaseType.INT}), 
+            Schema({"a.j": BaseType.INT, "a.j" : BaseType.INT}),
             BaseType.INT))
 
         with self.assertRaises(TypeMismatchError):
