@@ -48,7 +48,7 @@ class TestColumn(unittest.TestCase):
             "a": Schema({"b": BaseType.INT}),
         })
         self.assertEqual(IExprColumn(("a", "b")).type_check(st), 
-            Expression(Schema({"b": BaseType.INT}), BaseType.INT))
+            Expression(Schema({"a.b": BaseType.INT}), BaseType.INT))
         # with self.assertRaises(KeyError):
         #     IExprColumn(("a", "z")).type_check(st)
         # with self.assertRaises(KeyError):
@@ -69,7 +69,7 @@ class TestColumn(unittest.TestCase):
             BinaryIntOp.ADDITION,
             IExprColumn(("a", "j"))
         ).type_check(st), Expression(
-            Schema({"i": BaseType.INT, "j": BaseType.INT}), 
+            Schema({"a.i": BaseType.INT, "a.j": BaseType.INT}), 
             BaseType.INT))
 
         self.assertEqual(IExprBinaryOp(
@@ -77,7 +77,7 @@ class TestColumn(unittest.TestCase):
             BinaryIntOp.MULTIPLICATION,
             IExprIntLiteral(1000)
         ).type_check(st), Expression(
-            Schema({"i": BaseType.INT}), 
+            Schema({"a.i": BaseType.INT}), 
             BaseType.INT))
         
         self.assertEqual(IExprBinaryOp(
@@ -89,7 +89,7 @@ class TestColumn(unittest.TestCase):
                 IExprColumn(("a", "j"))
             )
         ).type_check(st), Expression(
-            Schema({"j": BaseType.INT, "j" : BaseType.INT}), 
+            Schema({"a.j": BaseType.INT, "a.j" : BaseType.INT}), 
             BaseType.INT))
 
         # with self.assertRaises(TypeMismatchError):

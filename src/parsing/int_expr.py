@@ -34,7 +34,7 @@ class IExprColumn(IExpr):
         table, col = self.table_column_name
         table_schema = st[table]
         return Expression(
-            Schema({table_schema.fields[col]: BaseType.INT}),
+            Schema({f"{table}.{col}" : BaseType.INT}),
             BaseType.INT
         )
 
