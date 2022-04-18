@@ -7,7 +7,7 @@ from src.parsing.data_structures import Expr
 from src.parsing.terminals import int_literal, lparen, rparen, c_name, padding
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, Schema
+from src.types.types import BaseType, Expression, Schema, TypeMismatchError
 
 
 @dataclass
@@ -33,6 +33,12 @@ class IExprColumn(IExpr):
     def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
         table_schema = st[table]
+
+        if not col in table_schema.fields:
+            raise KeyError("col not found in table")
+        elif table_schema.fields[col] != BaseType.INT:
+            raise TypeMismatchError(BaseType.INT, table_schema.fields[col])
+
         return Expression(
             Schema({f"{table}.{col}" : BaseType.INT}),
             BaseType.INT

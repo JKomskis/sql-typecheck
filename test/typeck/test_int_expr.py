@@ -49,10 +49,10 @@ class TestColumn(unittest.TestCase):
         })
         self.assertEqual(IExprColumn(("a", "b")).type_check(st), 
             Expression(Schema({"a.b": BaseType.INT}), BaseType.INT))
-        # with self.assertRaises(KeyError):
-        #     IExprColumn(("a", "z")).type_check(st)
-        # with self.assertRaises(KeyError):
-        #     IExprColumn(("c", "b")).type_check(st)
+        with self.assertRaises(KeyError):
+            IExprColumn(("a", "z")).type_check(st)
+        with self.assertRaises(KeyError):
+            IExprColumn(("c", "b")).type_check(st)
         # TODO: Handle above error
         # TODO: Handle matching column names
 
@@ -92,7 +92,7 @@ class TestColumn(unittest.TestCase):
             Schema({"a.j": BaseType.INT, "a.j" : BaseType.INT}), 
             BaseType.INT))
 
-        # with self.assertRaises(TypeMismatchError):
-        #     IExprBinaryOp(IExprColumn(
-        #         ("a", "b")), BinaryIntOp.MULTIPLICATION, IExprIntLiteral(1)).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            IExprBinaryOp(IExprColumn(
+                ("a", "b")), BinaryIntOp.MULTIPLICATION, IExprIntLiteral(1)).type_check(st)
         # TODO: Handle above error
