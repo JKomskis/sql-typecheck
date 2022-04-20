@@ -44,3 +44,27 @@ class TestSubstr(unittest.TestCase):
                             BinaryIntOp.ADDITION,
                             IExprIntLiteral(1))
                 , IExprIntLiteral(3) ))
+    
+    def test_substr_col(self):
+        self.assertEqual(v_expr.parse('SUBSTR(a.col, 0+1, 3)'), 
+            VExprSubstr( VExprColumn(("a", "col")), 
+                IExprBinaryOp(IExprIntLiteral(0),
+                            BinaryIntOp.ADDITION,
+                            IExprIntLiteral(1))
+                , IExprIntLiteral(3) ))
+
+    def test_substr_nested(self):
+        self.assertEqual(v_expr.parse('SUBSTR(SUBSTR(a.col, 3, 20), 1, 5)'), 
+            VExprSubstr( VExprSubstr(VExprColumn(("a", "col")), 
+                    IExprIntLiteral(3), 
+                    IExprIntLiteral(20) )
+                ,  IExprIntLiteral(1), IExprIntLiteral(5)))
+
+    def test_substr_concat(self):
+        self.assertEqual(v_expr.parse('SUBSTR(CONCAT("hello", "world"), 1, 5)'), 
+            VExprSubstr(  
+                VExprConcat(
+                    VExprVarcharLiteral("hello"),
+                    VExprVarcharLiteral("world")
+                )
+                ,  IExprIntLiteral(1), IExprIntLiteral(5)))
