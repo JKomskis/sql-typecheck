@@ -29,6 +29,7 @@ def identifier() -> str:
 
 
 int_literal = regex("-?[0-9]+").map(int)
+varchar_literal = regex('[^"]*').map(str) 
 lparen = string("(")
 rparen = string(")")
 bool_literal = (string_ignore_case("true") | string_ignore_case(
