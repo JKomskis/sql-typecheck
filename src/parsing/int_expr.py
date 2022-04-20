@@ -38,7 +38,7 @@ class IExprColumn(IExpr):
             raise TypeMismatchError(BaseType.INT, table_schema.fields[col])
 
         return Expression(
-            Schema({f"{table}.{col}" : BaseType.INT}),
+            Schema({f"{table}.{col}": BaseType.INT}),
             BaseType.INT
         )
 

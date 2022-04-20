@@ -49,15 +49,19 @@ class TestNot(unittest.TestCase):
             BExprBoolLiteral(True)
         )).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
+    def test_not_bool(self):
+        with self.assertRaises(TypeCheckingError):
+            self.assertEqual(BExprNot(IExprIntLiteral(0)
+                                      ).type_check(SymbolTable()))
+
 
 class TestEquality(unittest.TestCase):
     def test_equals(self):
         self.assertEqual(BExprEquality(BExprBoolLiteral(True), EqualityOperator.EQUALS,
                          BExprBoolLiteral(False)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        # TODO: fix error
-        # with self.assertRaises(TypeCheckingError):
-        #     BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN,
-        #                   BExprBoolLiteral(True)).type_check(SymbolTable())
+        with self.assertRaises(TypeCheckingError):
+            BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN,
+                          BExprBoolLiteral(True)).type_check(SymbolTable())
 
     def test_equals_and_nested(self):
         self.assertEqual(BExprEquality(
@@ -65,26 +69,24 @@ class TestEquality(unittest.TestCase):
             EqualityOperator.EQUALS,
             BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(False))
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        # TODO: fix error
-        # with self.assertRaises(TypeCheckingError):
-        #     BExprEquality(
-        #         BExprBoolLiteral(False),
-        #         EqualityOperator.EQUALS,
-        #         BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN, BExprBoolLiteral(True)
-        #                       ).type_check(SymbolTable()))
+        with self.assertRaises(TypeCheckingError):
+            BExprEquality(
+                BExprBoolLiteral(False),
+                EqualityOperator.EQUALS,
+                BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN, BExprBoolLiteral(True)
+                              ).type_check(SymbolTable()))
 
     def test_equals_int(self):
         self.assertEqual(BExprEquality(IExprIntLiteral(2), EqualityOperator.EQUALS,
                          IExprIntLiteral(3)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
         self.assertEqual(BExprEquality(IExprIntLiteral(-3), EqualityOperator.LESS_THAN,
                          IExprIntLiteral(3)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        # TODO: fix error
-        # with self.assertRaises(TypeCheckingError):
-        #     BExprEquality(IExprIntLiteral(0), EqualityOperator.LESS_THAN,
-        #                   BExprBoolLiteral(False)).type_check(SymbolTable())
-        # with self.assertRaises(TypeCheckingError):
-        #     BExprEquality(BExprBoolLiteral(True), EqualityOperator.EQUALS,
-        #                   IExprIntLiteral(1)).type_check(SymbolTable())
+        with self.assertRaises(TypeCheckingError):
+            BExprEquality(IExprIntLiteral(0), EqualityOperator.LESS_THAN,
+                          BExprBoolLiteral(False)).type_check(SymbolTable())
+        with self.assertRaises(TypeCheckingError):
+            BExprEquality(BExprBoolLiteral(True), EqualityOperator.EQUALS,
+                          IExprIntLiteral(1)).type_check(SymbolTable())
 
     def test_equals_and_int(self):
         self.assertEqual(BExprEquality(
@@ -120,16 +122,15 @@ class TestEquality(unittest.TestCase):
                 BExprBoolLiteral(False)
             )
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        # TODO: fix error
-        # with self.assertRaises(TypeCheckingError):
-        #     BExprAnd(
-        #         BExprEquality(
-        #             IExprIntLiteral(-1),
-        #             EqualityOperator.EQUALS,
-        #             IExprIntLiteral(1)
-        #         ),
-        #         IExprIntLiteral(0)
-        #     ).type_check(SymbolTable())
+        with self.assertRaises(TypeCheckingError):
+            BExprAnd(
+                BExprEquality(
+                    IExprIntLiteral(-1),
+                    EqualityOperator.EQUALS,
+                    IExprIntLiteral(1)
+                ),
+                IExprIntLiteral(0)
+            ).type_check(SymbolTable())
 
 
 class TestColumn(unittest.TestCase):
@@ -139,11 +140,10 @@ class TestColumn(unittest.TestCase):
         })
         self.assertEqual(BExprColumn(("a", "b")).type_check(
             st), Expression(Schema({"a.b": BaseType.BOOL}), BaseType.BOOL))
-        # with self.assertRaises(KeyError):
-        #     BExprColumn(("a", "z")).type_check(st)
-        # with self.assertRaises(KeyError):
-        #     BExprColumn(("c", "b")).type_check(st)
-        # TODO: handle above error
+        with self.assertRaises(KeyError):
+            BExprColumn(("a", "z")).type_check(st)
+        with self.assertRaises(KeyError):
+            BExprColumn(("c", "b")).type_check(st)
 
     def test_column_and(self):
         st = SymbolTable({
@@ -161,9 +161,9 @@ class TestColumn(unittest.TestCase):
             BExprAnd(BExprBoolLiteral(True), BExprColumn(("a", "c"))),
             BExprColumn(("a", "c"))
         ).type_check(st), Expression(Schema({"a.c": BaseType.BOOL}), BaseType.BOOL))
-        # with self.assertRaises(TypeMismatchError):
-        #     BExprAnd(BExprBoolLiteral(True),
-        #              BExprColumn(("a", "i"))).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            BExprAnd(BExprBoolLiteral(True),
+                     BExprColumn(("a", "i"))).type_check(st)
 
     def test_column_not(self):
         st = SymbolTable({
@@ -178,9 +178,8 @@ class TestColumn(unittest.TestCase):
             BExprColumn(("a", "b")),
             BExprNot(BExprColumn(("a", "b")))
         ).type_check(st), Expression(Schema({"a.b": BaseType.BOOL}), BaseType.BOOL))
-        # TODO: fix error
-        # with self.assertRaises(TypeMismatchError):
-        #     BExprNot(BExprColumn(("a", "i"))).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            BExprNot(BExprColumn(("a", "i"))).type_check(st)
 
     def test_column_equality(self):
         st = SymbolTable({
@@ -202,7 +201,6 @@ class TestColumn(unittest.TestCase):
             EqualityOperator.EQUALS,
             BExprColumn(("a", "c"))
         ).type_check(st), Expression(Schema({"a.b": BaseType.BOOL, "a.c": BaseType.BOOL}), BaseType.BOOL))
-        # TODO: fix error
-        # with self.assertRaises(TypeMismatchError):
-        #     BExprEquality(BExprColumn(("a", "i")), EqualityOperator.EQUALS, BExprColumn(
-        #         ("a", "s"))).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            BExprEquality(BExprColumn(("a", "i")), EqualityOperator.EQUALS, BExprColumn(
+                ("a", "s"))).type_check(st)

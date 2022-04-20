@@ -33,6 +33,11 @@ class BExprColumn(BExpr):
 
     def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
+        table_schema = st[table]
+
+        if table_schema.fields[col] != BaseType.BOOL:
+            raise TypeMismatchError(BaseType.BOOL, table_schema.fields[col])
+
         return Expression(
             Schema({f"{table}.{col}": BaseType.BOOL}),
             BaseType.BOOL
@@ -46,7 +51,11 @@ class BExprAnd(BExpr):
 
     def type_check(self, st: SymbolTable) -> Expression:
         left_type = self.left.type_check(st)
+        if left_type.output != BaseType.BOOL:
+            raise TypeMismatchError(BaseType.BOOL, left_type)
         right_type = self.right.type_check(st)
+        if right_type.output != BaseType.BOOL:
+            raise TypeMismatchError(BaseType.BOOL, right_type)
         return Expression(
             Schema.concat(left_type.inputs, right_type.inputs),
             BaseType.BOOL
@@ -58,10 +67,10 @@ class BExprNot(BExpr):
     node: BExpr
 
     def type_check(self, st: SymbolTable) -> Expression:
-        return Expression(
-            self.node.type_check(st).inputs,
-            BaseType.BOOL
-        )
+        node_type = self.node.type_check(st)
+        if node_type.output != BaseType.BOOL:
+            raise TypeMismatchError(BaseType.BOOL, node_type)
+        return node_type
 
 
 class EqualityOperator(Enum):
@@ -76,20 +85,19 @@ class BExprEquality(BExpr):
     right: IExpr
 
     def type_check(self, st: SymbolTable) -> Expression:
-        # left_type = self.left.type_check(st)
-        # if left_type == BaseType.INT or left_type == BaseType.VARCHAR or (
-        #     self.op == EqualityOperator.EQUALS and left_type == BaseType.BOOL
-        # ):
-        #     self.right.expect_type(st, left_type)
-        #     return BaseType.BOOL
-        # raise TypeCheckingError(
-        #     f"Cannot apply operator {self.op} to type {left_type}")
         left_type = self.left.type_check(st)
-        right_type = self.right.type_check(st)
-        return Expression(
-            Schema.concat(left_type.inputs, right_type.inputs),
-            BaseType.BOOL
-        )
+        if left_type.output == BaseType.INT or left_type.output == BaseType.VARCHAR or (
+            self.op == EqualityOperator.EQUALS and left_type.output == BaseType.BOOL
+        ):
+            right_type = self.right.type_check(st)
+            if left_type.output != right_type.output:
+                raise TypeMismatchError(left_type.output, right_type.output)
+            return Expression(
+                Schema.concat(left_type.inputs, right_type.inputs),
+                BaseType.BOOL
+            )
+        raise TypeCheckingError(
+            f"Cannot apply operator {self.op} to type {left_type}")
 
 
 @generate
