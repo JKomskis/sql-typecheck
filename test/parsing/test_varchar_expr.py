@@ -31,6 +31,13 @@ class TestConcat(unittest.TestCase):
             VExprConcat( VExprColumn(("b", "col")) ,
                 VExprConcat( VExprVarcharLiteral("test"),VExprColumn(("a", "col"))) ))
 
+    def test_concat_substr_nested(self):
+        self.assertEqual(v_expr.parse('CONCAT(b.col , substr("hello world", 0, 5) )'), 
+            VExprConcat( VExprColumn(("b", "col")) ,
+                VExprSubstr( VExprVarcharLiteral("hello world"), IExprIntLiteral(0), IExprIntLiteral(5) ) 
+                ))
+
+
 
 class TestSubstr(unittest.TestCase):
     def test_substr_literal(self):
