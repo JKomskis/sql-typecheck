@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import Type, TypeMismatchError
+from src.types.types import Expression, Type, TypeMismatchError
 
 
 @dataclass
 class Expr():
     # Class is here instead of expr.py to avoid circular import
 
-    def type_check(self, st: SymbolTable) -> Type:
+    def type_check(self, st: SymbolTable) -> Expression:
         raise NotImplementedError(f"TODO: write typing rule for {type(self)}")
 
     def expect_type(self, st: SymbolTable, expected: Type) -> Type:

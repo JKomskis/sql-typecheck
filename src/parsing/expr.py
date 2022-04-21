@@ -14,7 +14,7 @@ class ExprColumn(Expr):
 
 
 @generate
-def expr_column() -> ExprColumn:
+def expr_column():
     name = yield c_name
 
     return ExprColumn(name)

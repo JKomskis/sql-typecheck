@@ -7,7 +7,7 @@ from src.parsing.data_structures import Expr
 from src.parsing.terminals import int_literal, lparen, rparen, c_name, padding
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, Schema, TypeMismatchError
+from src.types.types import BaseType, Expression, Schema, TableFieldPair, TypeMismatchError
 
 
 @dataclass
@@ -28,7 +28,7 @@ class IExprIntLiteral(IExpr):
 
 @dataclass
 class IExprColumn(IExpr):
-    table_column_name: Tuple[str, str]
+    table_column_name: TableFieldPair
 
     def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
@@ -68,21 +68,21 @@ class IExprBinaryOp(IExpr):
 
 
 @generate
-def i_expr_int_literal() -> IExprIntLiteral:
+def i_expr_int_literal():
     value = yield int_literal
 
     return IExprIntLiteral(value)
 
 
 @generate
-def i_expr_column() -> IExprColumn:
+def i_expr_column():
     name = yield c_name
 
     return IExprColumn(name)
 
 
 @generate
-def i_expr() -> IExpr:
+def i_expr():
     node = yield i_expr_mult
 
     while True:
@@ -97,7 +97,7 @@ def i_expr() -> IExpr:
 
 
 @generate
-def i_expr_mult() -> IExpr:
+def i_expr_mult():
     node = yield i_expr_paren_terminal
 
     while True:
@@ -112,7 +112,7 @@ def i_expr_mult() -> IExpr:
 
 
 @generate
-def i_expr_paren_terminal() -> IExpr:
+def i_expr_paren_terminal():
     node = yield i_expr_int_literal \
         | i_expr_column \
         | lparen >> i_expr << rparen  # \

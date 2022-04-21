@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from parsy import generate, whitespace, string
 
 from src.parsing.bool_expr import BExpr, b_expr
@@ -24,7 +24,7 @@ class Query():
 @dataclass
 class QueryTable(Query):
     table_name: str
-    output_table_name: str = None
+    output_table_name: Optional[str] = None
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
         if self.table_name not in st:
@@ -67,8 +67,9 @@ class QueryJoin(Query):
 class QuerySelect(Query):
     select_list: List[Expr]
     from_query: Query
-    condition: BExpr = None
-    groupby: str = None
+    condition: Optional[BExpr] = None
+    groupby: Optional[str] = None
+
 
 @dataclass
 class QueryIntersect(Query):
@@ -82,6 +83,7 @@ class QueryIntersect(Query):
                 raise TypeMismatchError(ty, newty)
         return ty
 
+
 @dataclass
 class QueryIntersectUnion(Query):
     queries: List[QueryIntersect]
@@ -94,6 +96,7 @@ class QueryIntersectUnion(Query):
             if not newty == ty:
                 raise TypeMismatchError(ty, newty)
         return ty
+
 
 @dataclass
 class QueryUnion(Query):
@@ -125,7 +128,7 @@ class QueryUnion(Query):
 
 
 @generate
-def query() -> Query:
+def query():
     node = yield query_terminal
 
     while True:
@@ -144,7 +147,7 @@ def query() -> Query:
 
 
 @generate
-def query_terminal() -> Query:
+def query_terminal():
     node = yield query_table \
         | query_intersect_union \
         | query_union \
@@ -155,7 +158,7 @@ def query_terminal() -> Query:
 
 
 @generate
-def query_table() -> QueryTable:
+def query_table():
     table_name = yield t_name
     output_table_name = None
     as_token = yield (whitespace >> string_ignore_case("AS") << whitespace).optional()
@@ -165,7 +168,7 @@ def query_table() -> QueryTable:
 
 
 @generate
-def query_select() -> QuerySelect:
+def query_select():
     yield (padding >> string_ignore_case("SELECT") << whitespace)
     expressions = yield expr.sep_by(sep(","), min=1)
     yield (whitespace >> string_ignore_case("FROM") << whitespace)
@@ -185,19 +188,20 @@ def query_select() -> QuerySelect:
 
 
 @generate
-def query_intersect() -> QueryIntersect:
+def query_intersect():
     queries = yield query_select.sep_by(sep("INTERSECT"), min=2)
     return QueryIntersect(queries)
 
+
 @generate
-def query_union() -> QueryUnion:
-    queries = yield  query_select.sep_by(sep("UNION"), min=2) 
-    # string("ALL").optional() -> handle "UNION ALL" separator as well 
+def query_union():
+    queries = yield query_select.sep_by(sep("UNION"), min=2)
+    # string("ALL").optional() -> handle "UNION ALL" separator as well
     # (is there a way to have several tokenizer strings?)
     return QueryUnion(queries)
 
+
 @generate
-def query_intersect_union() -> QueryIntersectUnion:
+def query_intersect_union():
     queries = yield query_intersect.sep_by(sep("UNION"), min=2)
     return QueryIntersectUnion(queries)
-

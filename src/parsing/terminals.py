@@ -17,11 +17,12 @@ as_tok = space + string("AS") + space
 
 keywords = ["true", "false", "BOOL", "INT", "VARCHAR",
             "AND", "NOT", "AS", "JOIN", "ON", "SELECT", "FROM", "WHERE",
-            "CREATE", "TABLE"]
+            "CREATE", "TABLE", "UNION", "INTERSECT", "GROUP", "BY",
+            "HAVING", "MIN", "MAX", "COUNT", "AVG"]
 
 
 @generate
-def identifier() -> str:
+def identifier():
     ident = yield regex("[a-zA-Z][a-zA-Z0-9_]*")
     if ident in keywords:
         return fail("identifier cannot be a keyword")
@@ -29,7 +30,7 @@ def identifier() -> str:
 
 
 int_literal = regex("-?[0-9]+").map(int)
-varchar_literal = regex('[^"]*').map(str) 
+varchar_literal = regex('[^"]*').map(str)
 lparen = string("(")
 rparen = string(")")
 bool_literal = (string_ignore_case("true") | string_ignore_case(

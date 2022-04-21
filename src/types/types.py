@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict
+from typing import Dict, Tuple
 
 
 class Type:
@@ -13,9 +13,12 @@ class BaseType(Type, Enum):
     VARCHAR = "VARCHAR"
 
 
+TableFieldPair = Tuple[str, str]
+
+
 @dataclass
 class Schema(Type):
-    fields: Dict[str, Type]
+    fields: Dict[str, BaseType]
 
     def is_subtype(self, other) -> bool:
         for field_name, field_type in other.fields:

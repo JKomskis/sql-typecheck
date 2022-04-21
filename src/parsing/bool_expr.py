@@ -8,7 +8,7 @@ from src.parsing.int_expr import IExpr, i_expr
 from src.parsing.terminals import bool_literal, string_ignore_case, lparen, rparen, padding, c_name
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, Schema, TypeCheckingError, TypeMismatchError
+from src.types.types import BaseType, Expression, Schema, TableFieldPair, TypeCheckingError, TypeMismatchError
 
 
 @dataclass
@@ -29,7 +29,7 @@ class BExprBoolLiteral(BExpr):
 
 @dataclass
 class BExprColumn(BExpr):
-    table_column_name: Tuple[str, str]
+    table_column_name: TableFieldPair
 
     def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
@@ -101,24 +101,24 @@ class BExprEquality(BExpr):
 
 
 @generate
-def b_expr_bool_literal() -> BExprBoolLiteral:
+def b_expr_bool_literal():
     value = yield bool_literal
 
     return BExprBoolLiteral(value)
 
 
 @generate
-def b_expr_column() -> BExprColumn:
+def b_expr_column():
     name = yield c_name
 
     return BExprColumn(name)
 
 
 @generate
-def b_expr_equality() -> BExprEquality:
+def b_expr_equality():
     left = yield i_expr
     op_str = yield padding >> (string("=") | string("<")) << padding
-    op = None
+    op = EqualityOperator.EQUALS
     if op_str == "=":
         op = EqualityOperator.EQUALS
     elif op_str == "<":
@@ -129,7 +129,7 @@ def b_expr_equality() -> BExprEquality:
 
 
 @generate
-def b_expr() -> BExpr:
+def b_expr():
     node = yield b_expr_negation
 
     while True:
@@ -144,7 +144,7 @@ def b_expr() -> BExpr:
 
 
 @generate
-def b_expr_negation() -> BExpr:
+def b_expr_negation():
     negate = yield (string_ignore_case("NOT") << whitespace).optional()
     node = yield b_expr_paren_terminal
     if negate != None:
@@ -153,7 +153,7 @@ def b_expr_negation() -> BExpr:
 
 
 @generate
-def b_expr_paren_terminal() -> BExpr:
+def b_expr_paren_terminal():
     node = yield b_expr_bool_literal \
         | b_expr_equality \
         | b_expr_column \

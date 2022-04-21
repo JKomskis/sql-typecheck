@@ -9,7 +9,7 @@ from src.parsing.int_expr import IExpr, i_expr, i_expr_int_literal
 from src.parsing.terminals import string_ignore_case, varchar_literal, lparen, rparen, c_name, padding, sep
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, Schema, TypeMismatchError
+from src.types.types import BaseType, Expression, Schema, TableFieldPair, TypeMismatchError
 
 
 @dataclass
@@ -30,7 +30,7 @@ class VExprVarcharLiteral(VExpr):
 
 @dataclass
 class VExprColumn(VExpr):
-    table_column_name: Tuple[str, str]
+    table_column_name: TableFieldPair
 
     def type_check(self, st: SymbolTable) -> Expression:
         table, col = self.table_column_name
@@ -91,26 +91,26 @@ class VExprSubstr(VExpr):
 
 
 @generate
-def v_expr_varchar_literal() -> VExprVarcharLiteral:
-    value = yield  string('"') >> varchar_literal << string('"') 
+def v_expr_varchar_literal():
+    value = yield string('"') >> varchar_literal << string('"')
     return VExprVarcharLiteral(value)
 
 
 @generate
-def v_expr_column() -> VExprColumn:
+def v_expr_column():
     name = yield c_name
 
     return VExprColumn(name)
 
 
 @generate
-def v_expr() -> VExpr:
+def v_expr():
     node = yield v_expr_paren_terminal
     return node
 
 
 @generate
-def v_expr_concat() -> VExpr:
+def v_expr_concat():
     yield (string_ignore_case("CONCAT(") >> padding)
     left = yield (v_expr_varchar_literal | v_expr_column | v_expr_substr | v_expr_concat)
     yield padding >> string(",") >> padding
@@ -118,8 +118,9 @@ def v_expr_concat() -> VExpr:
     yield padding >> string(")")
     return VExprConcat(left, right)
 
+
 @generate
-def v_expr_substr() -> VExpr:
+def v_expr_substr():
     yield (string_ignore_case("SUBSTR(") >> padding)
     input = yield (v_expr_varchar_literal | v_expr_column | v_expr_concat | v_expr_substr)
     yield padding >> string(",") >> padding
@@ -131,7 +132,7 @@ def v_expr_substr() -> VExpr:
 
 
 @generate
-def v_expr_paren_terminal() -> VExpr:
+def v_expr_paren_terminal():
     node = yield v_expr_varchar_literal \
         | v_expr_concat \
         | v_expr_substr
