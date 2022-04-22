@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from parsy import generate, whitespace, string
 
 from src.parsing.bool_expr import BExpr, b_expr
-from src.parsing.data_structures import Expr
-from src.parsing.expr import expr
+from src.parsing.data_structures import Expr, SExpr
+from src.parsing.expr import expr, s_expr
 from src.parsing.terminals import string_ignore_case, padding, t_name, lparen, rparen, sep
 
 from src.types.symbol_table import SymbolTable
@@ -71,10 +71,26 @@ class QueryJoin(Query):
 
 @dataclass
 class QuerySelect(Query):
-    select_list: List[Expr]
+    select_list: List[SExpr]
     from_query: Query
     condition: Optional[BExpr] = None
     groupby: Optional[str] = None
+
+    def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
+        output_schema_fields: Dict[str, BaseType] = {}
+        from_name, from_schema = self.from_query.type_check(st)
+        from_schema_expanded = from_schema.expand(from_name)
+        for select_expr in self.select_list:
+            # Select expression must only reference from query schema
+            select_expr_type = select_expr.type_check(
+                SymbolTable({from_name: from_schema}))
+            if not from_schema_expanded.is_subtype(select_expr_type.inputs):
+                raise TypeMismatchError(
+                    from_schema_expanded, select_expr_type.inputs)
+            output_schema_fields[select_expr.get_name()
+                                 ] = select_expr_type.output
+
+        return (from_name, Schema(output_schema_fields))
 
 
 @dataclass
@@ -176,7 +192,7 @@ def query_table():
 @generate
 def query_select():
     yield (padding >> string_ignore_case("SELECT") << whitespace)
-    expressions = yield expr.sep_by(sep(","), min=1)
+    expressions = yield s_expr.sep_by(sep(","), min=1)
     yield (whitespace >> string_ignore_case("FROM") << whitespace)
     from_query = yield query
 

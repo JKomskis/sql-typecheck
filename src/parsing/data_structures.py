@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from src.types.symbol_table import SymbolTable
 from src.types.types import Expression, Type, TypeMismatchError
@@ -16,3 +17,18 @@ class Expr():
         if actual != expected:
             raise TypeMismatchError(expected, actual)
         return actual
+
+    def get_name(self) -> str:
+        raise NotImplementedError(f"TODO: write get_name() for {type(self)}")
+
+
+@dataclass
+class SExpr():
+    expr: Expr
+    name: Optional[str] = None
+
+    def type_check(self, st: SymbolTable) -> Expression:
+        return self.expr.type_check(st)
+
+    def get_name(self) -> str:
+        return self.name or self.expr.get_name()

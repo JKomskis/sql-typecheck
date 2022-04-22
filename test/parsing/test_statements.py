@@ -1,5 +1,6 @@
 import unittest
 from src.parsing.bool_expr import BExprColumn, BExprEquality, EqualityOperator
+from src.parsing.data_structures import SExpr
 from src.parsing.int_expr import IExprColumn
 
 from src.parsing.statements import StmtCreateTable, StmtQuery, StmtSequence, TableElement, stmt_create_table, stmt_sequence
@@ -36,7 +37,7 @@ class TestStmtQuery(unittest.TestCase):
             stmt_sequence.parse(
                 "SELECT students.ssn FROM students WHERE students.graduate"),
             StmtSequence([StmtQuery(QuerySelect(
-                [ExprColumn(("students", "ssn"))],
+                [SExpr(ExprColumn(("students", "ssn")))],
                 QueryTable("students"),
                 BExprColumn(("students", "graduate"))
             ))])
@@ -74,7 +75,7 @@ class TestStmtSequence(unittest.TestCase):
                     ]
                 ),
                 StmtQuery(QuerySelect(
-                    [ExprColumn(("students", "ssn"))],
+                    [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
                     BExprColumn(("students", "graduate"))
                 ))

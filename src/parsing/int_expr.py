@@ -25,6 +25,9 @@ class IExprIntLiteral(IExpr):
             BaseType.INT
         )
 
+    def get_name(self) -> str:
+        return str(self.value)
+
 
 @dataclass
 class IExprColumn(IExpr):
@@ -42,10 +45,13 @@ class IExprColumn(IExpr):
             BaseType.INT
         )
 
+    def get_name(self) -> str:
+        return self.table_column_name[1]
+
 
 class BinaryIntOp(Enum):
-    MULTIPLICATION = 1
-    ADDITION = 2
+    MULTIPLICATION = "times"
+    ADDITION = "plus"
 
 
 @dataclass
@@ -65,6 +71,9 @@ class IExprBinaryOp(IExpr):
             Schema.concat(left_type.inputs, right_type.inputs),
             BaseType.INT
         )
+
+    def get_name(self) -> str:
+        return f"{self.left.get_name()}_{self.op.value}_{self.right.get_name()}"
 
 
 @generate

@@ -26,6 +26,9 @@ class BExprBoolLiteral(BExpr):
             BaseType.BOOL
         )
 
+    def get_name(self) -> str:
+        return str(self.value).lower()
+
 
 @dataclass
 class BExprColumn(BExpr):
@@ -42,6 +45,9 @@ class BExprColumn(BExpr):
             Schema({f"{table}.{col}": BaseType.BOOL}),
             BaseType.BOOL
         )
+
+    def get_name(self) -> str:
+        return self.table_column_name[1]
 
 
 @dataclass
@@ -61,6 +67,9 @@ class BExprAnd(BExpr):
             BaseType.BOOL
         )
 
+    def get_name(self) -> str:
+        return f"{self.left.get_name()}_and_{self.right.get_name()}"
+
 
 @dataclass
 class BExprNot(BExpr):
@@ -72,10 +81,13 @@ class BExprNot(BExpr):
             raise TypeMismatchError(BaseType.BOOL, node_type)
         return node_type
 
+    def get_name(self) -> str:
+        return f"not_{self.node.get_name()}"
+
 
 class EqualityOperator(Enum):
-    EQUALS = 1
-    LESS_THAN = 2
+    EQUALS = "equals"
+    LESS_THAN = "lessthan"
 
 
 @dataclass
@@ -98,6 +110,9 @@ class BExprEquality(BExpr):
             )
         raise TypeCheckingError(
             f"Cannot apply operator {self.op} to type {left_type}")
+
+    def get_name(self) -> str:
+        return f"{self.left.get_name()}_{self.op.value}_{self.right.get_name()}"
 
 
 @generate
@@ -157,6 +172,6 @@ def b_expr_paren_terminal():
     node = yield b_expr_bool_literal \
         | b_expr_equality \
         | b_expr_column \
-        | lparen >> b_expr << rparen \
-        | b_expr
+        | lparen >> b_expr << rparen  # \
+    # | b_expr
     return node

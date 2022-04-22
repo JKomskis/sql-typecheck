@@ -68,10 +68,10 @@ class Schema(Type):
         new_fields = {}
         field_name_counts: DefaultDict[str, int] = defaultdict(int)
         for field in self.fields:
-            field_name = field.split(".")[-1]
+            field_name = field.split(".", 1)[-1]
             field_name_counts[field_name] += 1
         for field in self.fields:
-            field_name = field.split(".")[-1]
+            field_name = field.split(".", 1)[-1]
             if field_name_counts[field_name] > 1:
                 new_fields[field] = self.fields[field]
             else:
