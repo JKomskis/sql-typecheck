@@ -8,7 +8,7 @@ from src.parsing.expr import expr
 from src.parsing.terminals import string_ignore_case, padding, t_name, lparen, rparen, sep
 
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, NameMissingError, RedefinedNameError, Schema, Type, TypeMismatchError
+from src.types.types import BaseType, Expression, RedefinedNameError, Schema, Type, TypeMismatchError
 
 
 @dataclass
@@ -27,8 +27,6 @@ class QueryTable(Query):
     output_table_name: Optional[str] = None
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
-        if self.table_name not in st:
-            raise NameMissingError(self.table_name)
         schema = st[self.table_name]
         if self.output_table_name is None:
             return self.table_name, schema
@@ -38,9 +36,7 @@ class QueryTable(Query):
         return self.output_table_name, schema
 
     def get_output_table_name(self) -> str:
-        if self.output_table_name != None:
-            return self.output_table_name
-        return self.table_name
+        return self.output_table_name or self.table_name
 
 
 @dataclass
@@ -51,13 +47,23 @@ class QueryJoin(Query):
     output_name: str
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
-        left_schema = self.left.type_check(st)
-        right_schema = self.right.type_check(st)
-        concat_schema = left_schema | right_schema
-        self.condition.expect_type(st, BaseType.BOOL)
-        if not concat_schema.is_subtype(cond_type.inputs):
-            raise TypeMismatchError(concat_schema, cond_type.inputs)
-        return concat_schema
+        left_table_name, left_schema = self.left.type_check(st)
+        left_schema_expanded = left_schema.expand(left_table_name)
+        right_table_name, right_schema = self.right.type_check(st)
+        right_schema_expanded = right_schema.expand(right_table_name)
+        concat_schema = Schema.concat(
+            left_schema_expanded, right_schema_expanded, keep_all=True)
+
+        # The join condition can only reference the two tables being joined
+        join_st = SymbolTable(
+            {left_table_name: left_schema, right_table_name: right_schema})
+        condition_type = self.condition.type_check(join_st)
+
+        if condition_type.output != BaseType.BOOL:
+            raise TypeMismatchError(BaseType.BOOL, condition_type.output)
+        if not concat_schema.is_subtype(condition_type.inputs):
+            raise TypeMismatchError(concat_schema, condition_type.inputs)
+        return (self.get_output_table_name(), concat_schema.simplify())
 
     def get_output_table_name(self) -> str:
         return self.output_name
