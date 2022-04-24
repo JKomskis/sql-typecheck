@@ -90,26 +90,24 @@ class QuerySelect(Query):
             output_schema_fields[select_expr.get_name()
                                  ] = select_expr_type.output
 
+        if self.condition != None:
+            assert self.condition is not None  # Needed to resolve mypy error
+            schema_for_condition = Schema.concat(
+                from_schema,
+                Schema(output_schema_fields)
+            )
+            condition_type = self.condition.type_check(
+                SymbolTable({from_name: schema_for_condition}))
+            if not schema_for_condition.is_subtype(condition_type.inputs.simplify()):
+                raise TypeMismatchError(
+                    schema_for_condition, condition_type.inputs.simplify())
+
         return (from_name, Schema(output_schema_fields))
 
 
 @dataclass
 class QueryIntersect(Query):
-    queries: List[QuerySelect]
-
-    def type_check(self, st: SymbolTable) -> Type:
-        ty = self.queries[0].type_check(st)
-        for query in self.queries:
-            newty = query.type_check(st)
-            if not newty == ty:
-                raise TypeMismatchError(ty, newty)
-        return ty
-
-
-@dataclass
-class QueryIntersectUnion(Query):
-    queries: List[QueryIntersect]
-    # shoudl be QuerySelect OR QueryIntersect
+    queries: List[Query]
 
     def type_check(self, st: SymbolTable) -> Type:
         ty = self.queries[0].type_check(st)
@@ -122,7 +120,7 @@ class QueryIntersectUnion(Query):
 
 @dataclass
 class QueryUnion(Query):
-    queries: List[QuerySelect]
+    queries: List[Query]
     # shoudl be QuerySelect OR QueryIntersect
 
     def type_check(self, st: SymbolTable) -> Type:
@@ -151,6 +149,44 @@ class QueryUnion(Query):
 
 @generate
 def query():
+    nodes = []
+    node = yield query_intersect
+    nodes.append(node)
+
+    while True:
+        res = yield (whitespace >> string_ignore_case("UNION") << whitespace).optional()
+        if res == None:
+            break
+        next_node = yield query_intersect
+
+        nodes.append(next_node)
+
+    if len(nodes) == 1:
+        return nodes[0]
+    return QueryUnion(nodes)
+
+
+@generate
+def query_intersect():
+    nodes = []
+    node = yield query_join
+    nodes.append(node)
+
+    while True:
+        res = yield (whitespace >> string_ignore_case("INTERSECT") << whitespace).optional()
+        if res == None:
+            break
+        next_node = yield query_join
+
+        nodes.append(next_node)
+
+    if len(nodes) == 1:
+        return nodes[0]
+    return QueryIntersect(nodes)
+
+
+@generate
+def query_join():
     node = yield query_terminal
 
     while True:
@@ -171,9 +207,6 @@ def query():
 @generate
 def query_terminal():
     node = yield query_table \
-        | query_intersect_union \
-        | query_union \
-        | query_intersect \
         | query_select \
         | lparen >> query << rparen
     return node
@@ -207,23 +240,3 @@ def query_select():
         groupby = yield t_name
 
     return QuerySelect(expressions, from_query, condition, groupby)
-
-
-@generate
-def query_intersect():
-    queries = yield query_select.sep_by(sep("INTERSECT"), min=2)
-    return QueryIntersect(queries)
-
-
-@generate
-def query_union():
-    queries = yield query_select.sep_by(sep("UNION"), min=2)
-    # string("ALL").optional() -> handle "UNION ALL" separator as well
-    # (is there a way to have several tokenizer strings?)
-    return QueryUnion(queries)
-
-
-@generate
-def query_intersect_union():
-    queries = yield query_intersect.sep_by(sep("UNION"), min=2)
-    return QueryIntersectUnion(queries)

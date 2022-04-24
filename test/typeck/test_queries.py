@@ -1,5 +1,5 @@
 import unittest
-from src.parsing.bool_expr import BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator
+from src.parsing.bool_expr import BExprAnd, BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator
 from src.parsing.data_structures import SExpr
 from src.parsing.int_expr import BinaryIntOp, IExprBinaryOp, IExprColumn, IExprIntLiteral
 
@@ -7,7 +7,7 @@ from src.parsing.statements import StmtCreateTable, StmtQuery, StmtSequence, Tab
 from src.parsing.query import QueryJoin, QuerySelect, QueryTable
 from src.parsing.expr import ExprColumn
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, RedefinedNameError, Schema
+from src.types.types import BaseType, RedefinedNameError, Schema, TypeCheckingError
 
 
 class TestQueryTable(unittest.TestCase):
@@ -204,6 +204,11 @@ class TestQuerySelect(unittest.TestCase):
                 "true": BaseType.BOOL
             }))
         )
+        with self.assertRaises(KeyError):
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "nofield")))],
+                QueryTable("students")
+            ).type_check(st)
 
     def test_select_nested(self):
         st = SymbolTable({"students": TestQuerySelect.student_table_schema})
@@ -310,3 +315,155 @@ class TestQuerySelect(unittest.TestCase):
                 "grade": BaseType.INT
             }))
         )
+
+
+class TestQuerySelectWhere(unittest.TestCase):
+    student_table_schema = Schema({
+        "ssn": BaseType.INT,
+        "gpa": BaseType.INT,
+        "year": BaseType.INT,
+        "graduate": BaseType.BOOL,
+    })
+
+    def test_select(self):
+        st = SymbolTable(
+            {"students": TestQuerySelectWhere.student_table_schema})
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "ssn")))],
+                QueryTable("students"),
+                BExprBoolLiteral(True)
+            ).type_check(st),
+            ("students", Schema({
+                "ssn": BaseType.INT
+            }))
+        )
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "ssn")), "mySsn")],
+                QueryTable("students"),
+                BExprEquality(
+                    IExprColumn(("students", "gpa")),
+                    EqualityOperator.LESS_THAN,
+                    IExprIntLiteral(3)
+                )
+            ).type_check(st),
+            ("students", Schema({
+                "mySsn": BaseType.INT
+            }))
+        )
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn")],
+                QueryTable("students", "myStudents"),
+                BExprEquality(
+                    IExprColumn(("myStudents", "mySsn")),
+                    EqualityOperator.EQUALS,
+                    IExprColumn(("myStudents", "gpa"))
+                )
+            ).type_check(st),
+            ("myStudents", Schema({
+                "mySsn": BaseType.INT
+            }))
+        )
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn"),
+                 SExpr(ExprColumn(("myStudents", "graduate")))],
+                QueryTable("students", "myStudents"),
+                BExprAnd(
+                    BExprColumn(("myStudents", "graduate")),
+                    BExprEquality(
+                        IExprColumn(("myStudents", "ssn")),
+                        EqualityOperator.LESS_THAN,
+                        IExprIntLiteral(1000000)
+                    )
+                )
+            ).type_check(st),
+            ("myStudents", Schema({
+                "mySsn": BaseType.INT,
+                "graduate": BaseType.BOOL
+            }))
+        )
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("s", "ssn")), "mySsn"),
+                 SExpr(BExprNot(BExprColumn(("s", "graduate"))))],
+                QueryTable("students", "s"),
+                BExprAnd(
+                    BExprColumn(("s", "graduate")),
+                    BExprColumn(("s", "not_graduate"))
+                )
+            ).type_check(st),
+            ("s", Schema({
+                "mySsn": BaseType.INT,
+                "not_graduate": BaseType.BOOL
+            }))
+        )
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "graduate")), "g"),
+                 SExpr(IExprIntLiteral(0)),
+                 SExpr(IExprBinaryOp(
+                     IExprIntLiteral(1),
+                     BinaryIntOp.ADDITION,
+                     IExprIntLiteral(2))),
+                 SExpr(BExprBoolLiteral(True))],
+                QueryTable("students"),
+                BExprEquality(
+                    IExprColumn(("students", "0")),
+                    EqualityOperator.LESS_THAN,
+                    IExprColumn(("students", "1_plus_2"))
+                )
+            ).type_check(st),
+            ("students", Schema({
+                "g": BaseType.BOOL,
+                "0": BaseType.INT,
+                "1_plus_2": BaseType.INT,
+                "true": BaseType.BOOL
+            }))
+        )
+        with self.assertRaises(KeyError):
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "nofield")))],
+                QueryTable("students"),
+                BExprColumn(("ssn", "graduate"))
+            ).type_check(st)
+
+    def test_select_nested(self):
+        st = SymbolTable(
+            {"students": TestQuerySelectWhere.student_table_schema})
+        self.assertEqual(
+            QuerySelect(
+                [SExpr(ExprColumn(("myStudents", "mySsn")), "mySsn2")],
+                QuerySelect(
+                    [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn"),
+                     SExpr(ExprColumn(("myStudents", "graduate")))],
+                    QueryTable("students", "myStudents"),
+                    BExprEquality(
+                        IExprColumn(("myStudents", "mySsn")),
+                        EqualityOperator.LESS_THAN,
+                        IExprColumn(("myStudents", "gpa")),
+                    )
+                ),
+                BExprColumn(("myStudents", "graduate"))
+            ).type_check(st),
+            ("myStudents", Schema({
+                "mySsn2": BaseType.INT
+            }))
+        )
+        with self.assertRaises(KeyError):
+            QuerySelect(
+                [SExpr(ExprColumn(("myStudents", "mySsn")), "mySsn2")],
+                QuerySelect(
+                    [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn"),
+                     SExpr(ExprColumn(("myStudents", "graduate")))],
+                    QueryTable("students", "myStudents"),
+                    BExprEquality(
+                        IExprColumn(("myStudents", "gpa")),
+                        EqualityOperator.LESS_THAN,
+                        IExprIntLiteral(3)
+                    )
+                ),
+                BExprColumn(("myStudents", "gpa"))
+            ).type_check(st)
