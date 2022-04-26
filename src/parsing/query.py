@@ -121,7 +121,6 @@ class QueryIntersect(Query):
 @dataclass
 class QueryUnion(Query):
     queries: List[Query]
-    # shoudl be QuerySelect OR QueryIntersect
 
     def type_check(self, st: SymbolTable) -> Type:
         ty = self.queries[0].type_check(st)

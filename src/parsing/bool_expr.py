@@ -172,6 +172,5 @@ def b_expr_paren_terminal():
     node = yield b_expr_bool_literal \
         | b_expr_equality \
         | b_expr_column \
-        | lparen >> b_expr << rparen  # \
-    # | b_expr
+        | lparen >> b_expr << rparen
     return node

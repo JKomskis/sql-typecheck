@@ -12,12 +12,6 @@ class Expr():
     def type_check(self, st: SymbolTable) -> Expression:
         raise NotImplementedError(f"TODO: write typing rule for {type(self)}")
 
-    def expect_type(self, st: SymbolTable, expected: Type) -> Type:
-        actual = self.type_check(st)
-        if actual != expected:
-            raise TypeMismatchError(expected, actual)
-        return actual
-
     def get_name(self) -> str:
         raise NotImplementedError(f"TODO: write get_name() for {type(self)}")
 

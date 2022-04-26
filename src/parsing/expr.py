@@ -6,6 +6,7 @@ from src.parsing.data_structures import Expr, SExpr
 from src.parsing.int_expr import i_expr
 from src.parsing.bool_expr import b_expr
 from src.parsing.terminals import c_name, identifier, string_ignore_case
+from src.parsing.varchar_expr import v_expr
 from src.types.symbol_table import SymbolTable
 from src.types.types import Expression, Schema
 
@@ -34,7 +35,7 @@ def expr_column():
     return ExprColumn(name)
 
 
-expr = expr_column | b_expr | i_expr
+expr = expr_column | b_expr | i_expr | v_expr
 
 
 @generate

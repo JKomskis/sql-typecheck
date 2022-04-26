@@ -1,9 +1,8 @@
 from parsy import regex, string, seq, Parser, fail, generate
 
-# Helper parser that ignores case
-
 
 def string_ignore_case(s: str) -> Parser:
+    """Helper parser that ignores case"""
     return string(s.lower(), transform=lambda x: x.lower())
 
 
@@ -18,7 +17,7 @@ as_tok = space + string("AS") + space
 keywords = ["true", "false", "BOOL", "INT", "VARCHAR",
             "AND", "NOT", "AS", "JOIN", "ON", "SELECT", "FROM", "WHERE",
             "CREATE", "TABLE", "UNION", "INTERSECT", "GROUP", "BY",
-            "HAVING", "MIN", "MAX", "COUNT", "AVG"]
+            "HAVING", "MIN", "MAX", "COUNT", "AVG", "CONCAT", "SUBSTR"]
 
 
 @generate

@@ -23,7 +23,7 @@ class TableElement():
 
 
 @generate
-def table_element() -> TableElement:
+def table_element():
     column_name = yield identifier
     yield whitespace
     type_str = yield type_literal
@@ -61,15 +61,15 @@ class StmtSequence(Stmt):
     stmts: List[Stmt]
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
-        table_name = None
-        schema = None
+        table_name = ""
+        schema = Schema({})
         for stmt in self.stmts:
             table_name, schema = stmt.type_check(st)
         return table_name, schema
 
 
 @generate
-def stmt_create_table() -> StmtCreateTable:
+def stmt_create_table():
     yield padding + string_ignore_case("CREATE") + whitespace + string_ignore_case("TABLE") + whitespace
     table_name = yield t_name
     yield (padding + lparen + padding)
@@ -79,7 +79,7 @@ def stmt_create_table() -> StmtCreateTable:
 
 
 @generate
-def stmt_query() -> StmtQuery:
+def stmt_query():
     node = yield query
     return StmtQuery(node)
 
@@ -88,6 +88,6 @@ stmt = stmt_create_table | stmt_query
 
 
 @generate
-def stmt_sequence() -> StmtSequence:
+def stmt_sequence():
     stmts = yield stmt.sep_by(sep(";"), min=1) << string(";").optional()
     return StmtSequence(stmts)

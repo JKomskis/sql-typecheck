@@ -4,7 +4,6 @@ from typing import Tuple
 from parsy import generate, whitespace, string
 
 from src.parsing.data_structures import Expr
-from src.parsing.expr import expr
 from src.parsing.int_expr import IExpr, i_expr, i_expr_int_literal
 from src.parsing.terminals import string_ignore_case, varchar_literal, lparen, rparen, c_name, padding, sep
 

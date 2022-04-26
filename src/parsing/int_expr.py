@@ -124,6 +124,5 @@ def i_expr_mult():
 def i_expr_paren_terminal():
     node = yield i_expr_int_literal \
         | i_expr_column \
-        | lparen >> i_expr << rparen  # \
-    # | i_expr
+        | lparen >> i_expr << rparen
     return node
