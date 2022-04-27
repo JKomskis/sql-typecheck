@@ -1,188 +1,218 @@
 import unittest
 
-from src.parsing.bool_expr import BExpr, BExprAnd, BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator, b_expr
-from src.parsing.int_expr import IExprIntLiteral
-from src.parsing.terminals import c_name
+from src.parsing.expr import (BinaryOp, ExprBinaryOp, ExprBoolLiteral,
+                              ExprColumn, ExprIntLiteral, ExprNot, expr)
 
 
 class TestLiteral(unittest.TestCase):
     def test_true(self):
-        self.assertEqual(b_expr.parse("true"), BExprBoolLiteral(True))
-        self.assertEqual(b_expr.parse("TRUE"), BExprBoolLiteral(True))
+        self.assertEqual(expr.parse("true"), ExprBoolLiteral(True))
+        self.assertEqual(expr.parse("TRUE"), ExprBoolLiteral(True))
 
     def test_false(self):
-        self.assertEqual(b_expr.parse("false"), BExprBoolLiteral(False))
-        self.assertEqual(b_expr.parse("FALSE"), BExprBoolLiteral(False))
+        self.assertEqual(expr.parse("false"), ExprBoolLiteral(False))
+        self.assertEqual(expr.parse("FALSE"), ExprBoolLiteral(False))
 
 
 class TestAnd(unittest.TestCase):
     def test_and_literals(self):
         self.assertEqual(
-            b_expr.parse("true AND false"),
-            BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False))
+            expr.parse("true AND false"),
+            ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                         ExprBoolLiteral(False))
         )
 
     def test_and_nested(self):
         self.assertEqual(
-            b_expr.parse("(true AND false) AND true"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False)),
-                BExprBoolLiteral(True)
+            expr.parse("(true AND false) AND true"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                             ExprBoolLiteral(False)),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
-            b_expr.parse("true AND false AND true"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False)),
-                BExprBoolLiteral(True)
+            expr.parse("true AND false AND true"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                             ExprBoolLiteral(False)),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
-            b_expr.parse("true AND (false AND true)"),
-            BExprAnd(
-                BExprBoolLiteral(True),
-                BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(True))
+            expr.parse("true AND (false AND true)"),
+            ExprBinaryOp(
+                ExprBoolLiteral(True),
+                BinaryOp.AND,
+                ExprBinaryOp(ExprBoolLiteral(False),
+                             BinaryOp.AND, ExprBoolLiteral(True))
             )
         )
         self.assertEqual(
-            b_expr.parse("(true AND false) AND (false AND true)"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False)),
-                BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(True))
+            expr.parse("(true AND false) AND (false AND true)"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                             ExprBoolLiteral(False)),
+                BinaryOp.AND,
+                ExprBinaryOp(ExprBoolLiteral(False),
+                             BinaryOp.AND, ExprBoolLiteral(True))
             )
         )
 
 
 class TestNot(unittest.TestCase):
     def test_not_literals(self):
-        self.assertEqual(b_expr.parse("NOT true"),
-                         BExprNot(BExprBoolLiteral(True)))
-        self.assertEqual(b_expr.parse("NOT false"),
-                         BExprNot(BExprBoolLiteral(False)))
+        self.assertEqual(expr.parse("NOT true"),
+                         ExprNot(ExprBoolLiteral(True)))
+        self.assertEqual(expr.parse("NOT false"),
+                         ExprNot(ExprBoolLiteral(False)))
 
     def test_not_and(self):
         self.assertEqual(
-            b_expr.parse("NOT true AND false"),
-            BExprAnd(BExprNot(BExprBoolLiteral(True)), BExprBoolLiteral(False))
+            expr.parse("NOT true AND false"),
+            ExprBinaryOp(ExprNot(ExprBoolLiteral(True)),
+                         BinaryOp.AND, ExprBoolLiteral(False))
         )
         self.assertEqual(
-            b_expr.parse("true AND NOT false"),
-            BExprAnd(BExprBoolLiteral(True), BExprNot(BExprBoolLiteral(False)))
+            expr.parse("true AND NOT false"),
+            ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                         ExprNot(ExprBoolLiteral(False)))
         )
         self.assertEqual(
-            b_expr.parse("NOT (true AND false)"),
-            BExprNot(BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False)))
+            expr.parse("NOT (true AND false)"),
+            ExprNot(ExprBinaryOp(ExprBoolLiteral(True),
+                    BinaryOp.AND, ExprBoolLiteral(False)))
         )
 
     def test_not_nested(self):
         self.assertEqual(
-            b_expr.parse("NOT (true AND false) AND true"),
-            BExprAnd(
-                BExprNot(BExprAnd(BExprBoolLiteral(
-                    True), BExprBoolLiteral(False))),
-                BExprBoolLiteral(True)
+            expr.parse("NOT (true AND false) AND true"),
+            ExprBinaryOp(
+                ExprNot(ExprBinaryOp(ExprBoolLiteral(
+                    True), BinaryOp.AND, ExprBoolLiteral(False))),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
-            b_expr.parse("(true AND NOT false) AND true"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True),
-                         BExprNot(BExprBoolLiteral(False))),
-                BExprBoolLiteral(True)
+            expr.parse("(true AND NOT false) AND true"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True),
+                             BinaryOp.AND,
+                             ExprNot(ExprBoolLiteral(False))),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
-            b_expr.parse("NOT true AND false AND true"),
-            BExprAnd(
-                BExprAnd(BExprNot(BExprBoolLiteral(True)),
-                         BExprBoolLiteral(False)),
-                BExprBoolLiteral(True)
+            expr.parse("NOT true AND false AND true"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprNot(ExprBoolLiteral(True)),
+                             BinaryOp.AND,
+                             ExprBoolLiteral(False)),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
-            b_expr.parse("true AND NOT false AND true"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True),
-                         BExprNot(BExprBoolLiteral(False))),
-                BExprBoolLiteral(True)
+            expr.parse("true AND NOT false AND true"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True),
+                             BinaryOp.AND,
+                             ExprNot(ExprBoolLiteral(False))),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
-            b_expr.parse("true AND (false AND NOT true)"),
-            BExprAnd(
-                BExprBoolLiteral(True),
-                BExprAnd(BExprBoolLiteral(False),
-                         BExprNot(BExprBoolLiteral(True)))
+            expr.parse("true AND (false AND NOT true)"),
+            ExprBinaryOp(
+                ExprBoolLiteral(True),
+                BinaryOp.AND,
+                ExprBinaryOp(ExprBoolLiteral(False),
+                             BinaryOp.AND,
+                             ExprNot(ExprBoolLiteral(True)))
             )
         )
         self.assertEqual(
-            b_expr.parse("true AND NOT (false AND true)"),
-            BExprAnd(
-                BExprBoolLiteral(True),
-                BExprNot(BExprAnd(BExprBoolLiteral(
-                    False), BExprBoolLiteral(True)))
+            expr.parse("true AND NOT (false AND true)"),
+            ExprBinaryOp(
+                ExprBoolLiteral(True),
+                BinaryOp.AND,
+                ExprNot(ExprBinaryOp(ExprBoolLiteral(
+                    False), BinaryOp.AND, ExprBoolLiteral(True)))
             )
         )
         self.assertEqual(
-            b_expr.parse("(true AND false) AND (NOT false AND true)"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False)),
-                BExprAnd(BExprNot(BExprBoolLiteral(False)),
-                         BExprBoolLiteral(True))
+            expr.parse("(true AND false) AND (NOT false AND true)"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                             ExprBoolLiteral(False)),
+                BinaryOp.AND,
+                ExprBinaryOp(ExprNot(ExprBoolLiteral(False)), BinaryOp.AND,
+                             ExprBoolLiteral(True))
             )
         )
         self.assertEqual(
-            b_expr.parse("(true AND false) AND NOT (false AND true)"),
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(False)),
-                BExprNot(BExprAnd(BExprBoolLiteral(
-                    False), BExprBoolLiteral(True)))
+            expr.parse("(true AND false) AND NOT (false AND true)"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                             ExprBoolLiteral(False)),
+                BinaryOp.AND,
+                ExprNot(ExprBinaryOp(ExprBoolLiteral(
+                    False), BinaryOp.AND, ExprBoolLiteral(True)))
             )
         )
 
 
 class TestEquality(unittest.TestCase):
-    ops = [("=", EqualityOperator.EQUALS), ("<", EqualityOperator.LESS_THAN)]
+    ops = [("=", BinaryOp.EQUALS), ("<", BinaryOp.LESS_THAN)]
 
     def test_equals(self):
         for op_str, op in TestEquality.ops:
             self.assertEqual(
-                b_expr.parse(f"0{op_str}0"),
-                BExprEquality(IExprIntLiteral(0), op, IExprIntLiteral(0))
+                expr.parse(f"0{op_str}0"),
+                ExprBinaryOp(ExprIntLiteral(0), op, ExprIntLiteral(0))
             )
-            self.assertEqual(b_expr.parse(
-                f"0{op_str}0"), b_expr.parse(f"0 {op_str} 0"))
+            self.assertEqual(expr.parse(
+                f"0{op_str}0"), expr.parse(f"0 {op_str} 0"))
             self.assertEqual(
-                b_expr.parse(f"-50{op_str} -50"),
-                BExprEquality(IExprIntLiteral(-50), op, IExprIntLiteral(-50))
+                expr.parse(f"-50{op_str} -50"),
+                ExprBinaryOp(ExprIntLiteral(-50), op, ExprIntLiteral(-50))
             )
 
     def test_equals_and(self):
         for op_str, op in TestEquality.ops:
             self.assertEqual(
-                b_expr.parse(f"0{op_str}0 AND false"),
-                BExprAnd(
-                    BExprEquality(IExprIntLiteral(0), op, IExprIntLiteral(0)),
-                    BExprBoolLiteral(False)
+                expr.parse(f"0{op_str}0 AND false"),
+                ExprBinaryOp(
+                    ExprBinaryOp(ExprIntLiteral(0), op, ExprIntLiteral(0)),
+                    BinaryOp.AND,
+                    ExprBoolLiteral(False)
                 )
             )
             self.assertEqual(
-                b_expr.parse(f"true AND -100{op_str}-100"),
-                BExprAnd(
-                    BExprBoolLiteral(True),
-                    BExprEquality(IExprIntLiteral(-100),
-                                  op, IExprIntLiteral(-100))
+                expr.parse(f"true AND -100{op_str}-100"),
+                ExprBinaryOp(
+                    ExprBoolLiteral(True),
+                    BinaryOp.AND,
+                    ExprBinaryOp(ExprIntLiteral(-100),
+                                 op, ExprIntLiteral(-100))
                 )
             )
             self.assertEqual(
-                b_expr.parse(f"true AND (-100{op_str}-100 and 0{op_str}50)"),
-                BExprAnd(
-                    BExprBoolLiteral(True),
-                    BExprAnd(
-                        BExprEquality(IExprIntLiteral(-100), op,
-                                      IExprIntLiteral(-100)),
-                        BExprEquality(IExprIntLiteral(
-                            0), op, IExprIntLiteral(50))
+                expr.parse(f"true AND (-100{op_str}-100 and 0{op_str}50)"),
+                ExprBinaryOp(
+                    ExprBoolLiteral(True),
+                    BinaryOp.AND,
+                    ExprBinaryOp(
+                        ExprBinaryOp(ExprIntLiteral(-100), op,
+                                     ExprIntLiteral(-100)),
+                        BinaryOp.AND,
+                        ExprBinaryOp(ExprIntLiteral(
+                            0), op, ExprIntLiteral(50))
                     )
                 )
             )
@@ -190,31 +220,35 @@ class TestEquality(unittest.TestCase):
     def test_equals_and_not(self):
         for op_str, op in TestEquality.ops:
             self.assertEqual(
-                b_expr.parse(f"not 0{op_str}0 AND not false"),
-                BExprAnd(
-                    BExprNot(BExprEquality(
-                        IExprIntLiteral(0), op, IExprIntLiteral(0))),
-                    BExprNot(BExprBoolLiteral(False))
+                expr.parse(f"not 0{op_str}0 AND not false"),
+                ExprBinaryOp(
+                    ExprNot(ExprBinaryOp(
+                        ExprIntLiteral(0), op, ExprIntLiteral(0))),
+                    BinaryOp.AND,
+                    ExprNot(ExprBoolLiteral(False))
                 )
             )
             self.assertEqual(
-                b_expr.parse(f"not (not true AND not -100{op_str}-100)"),
-                BExprNot(BExprAnd(
-                    BExprNot(BExprBoolLiteral(True)),
-                    BExprNot(BExprEquality(IExprIntLiteral(-100),
-                             op, IExprIntLiteral(-100)))
+                expr.parse(f"not (not true AND not -100{op_str}-100)"),
+                ExprNot(ExprBinaryOp(
+                    ExprNot(ExprBoolLiteral(True)),
+                    BinaryOp.AND,
+                    ExprNot(ExprBinaryOp(ExprIntLiteral(-100),
+                                         op, ExprIntLiteral(-100)))
                 ))
             )
             self.assertEqual(
-                b_expr.parse(
+                expr.parse(
                     f"not true AND not (not -100{op_str}-100 and not 0{op_str}50)"),
-                BExprAnd(
-                    BExprNot(BExprBoolLiteral(True)),
-                    BExprNot(BExprAnd(
-                        BExprNot(BExprEquality(IExprIntLiteral(-100),
-                                 op, IExprIntLiteral(-100))),
-                        BExprNot(BExprEquality(
-                            IExprIntLiteral(0), op, IExprIntLiteral(50)))
+                ExprBinaryOp(
+                    ExprNot(ExprBoolLiteral(True)),
+                    BinaryOp.AND,
+                    ExprNot(ExprBinaryOp(
+                        ExprNot(ExprBinaryOp(ExprIntLiteral(-100),
+                                             op, ExprIntLiteral(-100))),
+                        BinaryOp.AND,
+                        ExprNot(ExprBinaryOp(
+                            ExprIntLiteral(0), op, ExprIntLiteral(50)))
                     ))
                 )
             )
@@ -223,44 +257,50 @@ class TestEquality(unittest.TestCase):
 class TestColumn(unittest.TestCase):
     def test_column(self):
         self.assertEqual(
-            b_expr.parse(f"a.b"),
-            BExprColumn(("a", "b"))
+            expr.parse(f"a.b"),
+            ExprColumn(("a", "b"))
         )
 
     def test_column_and(self):
         self.assertEqual(
-            b_expr.parse(f"a.b and c.d"),
-            BExprAnd(
-                BExprColumn(("a", "b")),
-                BExprColumn(("c", "d")),
+            expr.parse(f"a.b and c.d"),
+            ExprBinaryOp(
+                ExprColumn(("a", "b")),
+                BinaryOp.AND,
+                ExprColumn(("c", "d")),
             )
         )
         self.assertEqual(
-            b_expr.parse(f"a.b and true and c.d"),
-            BExprAnd(
-                BExprAnd(
-                    BExprColumn(("a", "b")),
-                    BExprBoolLiteral(True)
+            expr.parse(f"a.b and true and c.d"),
+            ExprBinaryOp(
+                ExprBinaryOp(
+                    ExprColumn(("a", "b")),
+                    BinaryOp.AND,
+                    ExprBoolLiteral(True)
                 ),
-                BExprColumn(("c", "d"))
+                BinaryOp.AND,
+                ExprColumn(("c", "d"))
             )
         )
 
     def test_column_and_not(self):
         self.assertEqual(
-            b_expr.parse(f"a.b and not c.d"),
-            BExprAnd(
-                BExprColumn(("a", "b")),
-                BExprNot(BExprColumn(("c", "d"))),
+            expr.parse(f"a.b and not c.d"),
+            ExprBinaryOp(
+                ExprColumn(("a", "b")),
+                BinaryOp.AND,
+                ExprNot(ExprColumn(("c", "d"))),
             )
         )
         self.assertEqual(
-            b_expr.parse(f"not a.b and not (true and c.d)"),
-            BExprAnd(
-                BExprNot(BExprColumn(("a", "b"))),
-                BExprNot(BExprAnd(
-                    BExprBoolLiteral(True),
-                    BExprColumn(("c", "d"))
+            expr.parse(f"not a.b and not (true and c.d)"),
+            ExprBinaryOp(
+                ExprNot(ExprColumn(("a", "b"))),
+                BinaryOp.AND,
+                ExprNot(ExprBinaryOp(
+                    ExprBoolLiteral(True),
+                    BinaryOp.AND,
+                    ExprColumn(("c", "d"))
                 ))
             )
         )

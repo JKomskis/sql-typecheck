@@ -1,13 +1,11 @@
 import unittest
-from src.parsing.bool_expr import BExprAnd, BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator
-from src.parsing.data_structures import SExpr
-from src.parsing.int_expr import BinaryIntOp, IExprBinaryOp, IExprColumn, IExprIntLiteral
 
-from src.parsing.statements import StmtCreateTable, StmtQuery, StmtSequence, TableElement, stmt_create_table, stmt_sequence
+from src.parsing.expr import (BinaryOp, ExprBinaryOp, ExprBoolLiteral,
+                              ExprColumn, ExprIntLiteral, ExprNot)
 from src.parsing.query import QueryJoin, QuerySelect, QueryTable
-from src.parsing.expr import ExprColumn
+from src.parsing.s_expr import SExpr
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, RedefinedNameError, Schema, TypeCheckingError
+from src.types.types import BaseType, RedefinedNameError, Schema
 
 
 class TestQueryTable(unittest.TestCase):
@@ -69,10 +67,10 @@ class TestQueryJoin(unittest.TestCase):
         self.assertEqual(QueryJoin(
             QueryTable("students"),
             QueryTable("enrolled"),
-            BExprEquality(
-                IExprColumn(("students", "ssn")),
-                EqualityOperator.EQUALS,
-                IExprColumn(("enrolled", "ssn"))
+            ExprBinaryOp(
+                ExprColumn(("students", "ssn")),
+                BinaryOp.EQUALS,
+                ExprColumn(("enrolled", "ssn"))
             ),
             "students_enrolled"
         ).type_check(st), ("students_enrolled", TestQueryJoin.student_enrolled_table_schema))
@@ -80,10 +78,10 @@ class TestQueryJoin(unittest.TestCase):
         self.assertEqual(QueryJoin(
             QueryTable("students"),
             QueryTable("enrolled"),
-            BExprEquality(
-                IExprColumn(("students", "gpa")),
-                EqualityOperator.EQUALS,
-                IExprColumn(("enrolled", "grade"))
+            ExprBinaryOp(
+                ExprColumn(("students", "gpa")),
+                BinaryOp.EQUALS,
+                ExprColumn(("enrolled", "grade"))
             ),
             "students_enrolled"
         ).type_check(st), ("students_enrolled", TestQueryJoin.student_enrolled_table_schema))
@@ -93,10 +91,10 @@ class TestQueryJoin(unittest.TestCase):
         self.assertEqual(QueryJoin(
             QueryTable("students", "s1"),
             QueryTable("students", "s2"),
-            BExprEquality(
-                IExprColumn(("s1", "ssn")),
-                EqualityOperator.EQUALS,
-                IExprColumn(("s2", "ssn"))
+            ExprBinaryOp(
+                ExprColumn(("s1", "ssn")),
+                BinaryOp.EQUALS,
+                ExprColumn(("s2", "ssn"))
             ),
             "students_self_join"
         ).type_check(st), ("students_self_join", Schema({
@@ -178,7 +176,7 @@ class TestQuerySelect(unittest.TestCase):
         self.assertEqual(
             QuerySelect(
                 [SExpr(ExprColumn(("s", "ssn")), "mySsn"),
-                 SExpr(BExprNot(BExprColumn(("s", "graduate"))))],
+                 SExpr(ExprNot(ExprColumn(("s", "graduate"))))],
                 QueryTable("students", "s")
             ).type_check(st),
             ("s", Schema({
@@ -189,12 +187,12 @@ class TestQuerySelect(unittest.TestCase):
         self.assertEqual(
             QuerySelect(
                 [SExpr(ExprColumn(("students", "graduate")), "g"),
-                 SExpr(IExprIntLiteral(0)),
-                 SExpr(IExprBinaryOp(
-                     IExprIntLiteral(1),
-                     BinaryIntOp.ADDITION,
-                     IExprIntLiteral(2))),
-                 SExpr(BExprBoolLiteral(True))],
+                 SExpr(ExprIntLiteral(0)),
+                 SExpr(ExprBinaryOp(
+                     ExprIntLiteral(1),
+                     BinaryOp.ADDITION,
+                     ExprIntLiteral(2))),
+                 SExpr(ExprBoolLiteral(True))],
                 QueryTable("students")
             ).type_check(st),
             ("students", Schema({
@@ -237,10 +235,10 @@ class TestQuerySelect(unittest.TestCase):
                     QueryTable("students"),
                 ),
                 QueryTable("enrolled"),
-                BExprEquality(
-                    IExprColumn(("students", "ssn")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("enrolled", "ssn"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "ssn")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("enrolled", "ssn"))
                 ),
                 "s_e"
             ).type_check(st), ("s_e", Schema({
@@ -259,10 +257,10 @@ class TestQuerySelect(unittest.TestCase):
                     QueryTable("students"),
                 ),
                 QueryTable("enrolled"),
-                BExprEquality(
-                    IExprColumn(("students", "ssn_2")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("enrolled", "ssn"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "ssn_2")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("enrolled", "ssn"))
                 ),
                 "s_e"
             ).type_check(st), ("s_e", Schema({
@@ -284,10 +282,10 @@ class TestQuerySelect(unittest.TestCase):
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "ssn")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "ssn"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "ssn"))
                     ),
                     "s_e"
                 )
@@ -303,10 +301,10 @@ class TestQuerySelect(unittest.TestCase):
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "ssn")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "ssn"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "ssn"))
                     ),
                     "s_e"
                 )
@@ -332,7 +330,7 @@ class TestQuerySelectWhere(unittest.TestCase):
             QuerySelect(
                 [SExpr(ExprColumn(("students", "ssn")))],
                 QueryTable("students"),
-                BExprBoolLiteral(True)
+                ExprBoolLiteral(True)
             ).type_check(st),
             ("students", Schema({
                 "ssn": BaseType.INT
@@ -342,10 +340,10 @@ class TestQuerySelectWhere(unittest.TestCase):
             QuerySelect(
                 [SExpr(ExprColumn(("students", "ssn")), "mySsn")],
                 QueryTable("students"),
-                BExprEquality(
-                    IExprColumn(("students", "gpa")),
-                    EqualityOperator.LESS_THAN,
-                    IExprIntLiteral(3)
+                ExprBinaryOp(
+                    ExprColumn(("students", "gpa")),
+                    BinaryOp.LESS_THAN,
+                    ExprIntLiteral(3)
                 )
             ).type_check(st),
             ("students", Schema({
@@ -356,10 +354,10 @@ class TestQuerySelectWhere(unittest.TestCase):
             QuerySelect(
                 [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn")],
                 QueryTable("students", "myStudents"),
-                BExprEquality(
-                    IExprColumn(("myStudents", "mySsn")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("myStudents", "gpa"))
+                ExprBinaryOp(
+                    ExprColumn(("myStudents", "mySsn")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("myStudents", "gpa"))
                 )
             ).type_check(st),
             ("myStudents", Schema({
@@ -371,12 +369,13 @@ class TestQuerySelectWhere(unittest.TestCase):
                 [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn"),
                  SExpr(ExprColumn(("myStudents", "graduate")))],
                 QueryTable("students", "myStudents"),
-                BExprAnd(
-                    BExprColumn(("myStudents", "graduate")),
-                    BExprEquality(
-                        IExprColumn(("myStudents", "ssn")),
-                        EqualityOperator.LESS_THAN,
-                        IExprIntLiteral(1000000)
+                ExprBinaryOp(
+                    ExprColumn(("myStudents", "graduate")),
+                    BinaryOp.AND,
+                    ExprBinaryOp(
+                        ExprColumn(("myStudents", "ssn")),
+                        BinaryOp.LESS_THAN,
+                        ExprIntLiteral(1000000)
                     )
                 )
             ).type_check(st),
@@ -388,11 +387,12 @@ class TestQuerySelectWhere(unittest.TestCase):
         self.assertEqual(
             QuerySelect(
                 [SExpr(ExprColumn(("s", "ssn")), "mySsn"),
-                 SExpr(BExprNot(BExprColumn(("s", "graduate"))))],
+                 SExpr(ExprNot(ExprColumn(("s", "graduate"))))],
                 QueryTable("students", "s"),
-                BExprAnd(
-                    BExprColumn(("s", "graduate")),
-                    BExprColumn(("s", "not_graduate"))
+                ExprBinaryOp(
+                    ExprColumn(("s", "graduate")),
+                    BinaryOp.AND,
+                    ExprColumn(("s", "not_graduate"))
                 )
             ).type_check(st),
             ("s", Schema({
@@ -403,17 +403,17 @@ class TestQuerySelectWhere(unittest.TestCase):
         self.assertEqual(
             QuerySelect(
                 [SExpr(ExprColumn(("students", "graduate")), "g"),
-                 SExpr(IExprIntLiteral(0)),
-                 SExpr(IExprBinaryOp(
-                     IExprIntLiteral(1),
-                     BinaryIntOp.ADDITION,
-                     IExprIntLiteral(2))),
-                 SExpr(BExprBoolLiteral(True))],
+                 SExpr(ExprIntLiteral(0)),
+                 SExpr(ExprBinaryOp(
+                     ExprIntLiteral(1),
+                     BinaryOp.ADDITION,
+                     ExprIntLiteral(2))),
+                 SExpr(ExprBoolLiteral(True))],
                 QueryTable("students"),
-                BExprEquality(
-                    IExprColumn(("students", "0")),
-                    EqualityOperator.LESS_THAN,
-                    IExprColumn(("students", "1_plus_2"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "0")),
+                    BinaryOp.LESS_THAN,
+                    ExprColumn(("students", "1_plus_2"))
                 )
             ).type_check(st),
             ("students", Schema({
@@ -427,7 +427,7 @@ class TestQuerySelectWhere(unittest.TestCase):
             QuerySelect(
                 [SExpr(ExprColumn(("students", "nofield")))],
                 QueryTable("students"),
-                BExprColumn(("ssn", "graduate"))
+                ExprColumn(("ssn", "graduate"))
             ).type_check(st)
 
     def test_select_nested(self):
@@ -440,13 +440,13 @@ class TestQuerySelectWhere(unittest.TestCase):
                     [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn"),
                      SExpr(ExprColumn(("myStudents", "graduate")))],
                     QueryTable("students", "myStudents"),
-                    BExprEquality(
-                        IExprColumn(("myStudents", "mySsn")),
-                        EqualityOperator.LESS_THAN,
-                        IExprColumn(("myStudents", "gpa")),
+                    ExprBinaryOp(
+                        ExprColumn(("myStudents", "mySsn")),
+                        BinaryOp.LESS_THAN,
+                        ExprColumn(("myStudents", "gpa")),
                     )
                 ),
-                BExprColumn(("myStudents", "graduate"))
+                ExprColumn(("myStudents", "graduate"))
             ).type_check(st),
             ("myStudents", Schema({
                 "mySsn2": BaseType.INT
@@ -459,11 +459,11 @@ class TestQuerySelectWhere(unittest.TestCase):
                     [SExpr(ExprColumn(("myStudents", "ssn")), "mySsn"),
                      SExpr(ExprColumn(("myStudents", "graduate")))],
                     QueryTable("students", "myStudents"),
-                    BExprEquality(
-                        IExprColumn(("myStudents", "gpa")),
-                        EqualityOperator.LESS_THAN,
-                        IExprIntLiteral(3)
+                    ExprBinaryOp(
+                        ExprColumn(("myStudents", "gpa")),
+                        BinaryOp.LESS_THAN,
+                        ExprIntLiteral(3)
                     )
                 ),
-                BExprColumn(("myStudents", "gpa"))
+                ExprColumn(("myStudents", "gpa"))
             ).type_check(st)

@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 from parsy import generate, whitespace, string
 
-from src.parsing.bool_expr import BExpr, b_expr
-from src.parsing.data_structures import Expr, SExpr
-from src.parsing.expr import expr, s_expr
+from src.parsing.s_expr import SExpr, s_expr
+from src.parsing.expr import Expr, expr
 from src.parsing.terminals import string_ignore_case, padding, t_name, lparen, rparen, sep
 
 from src.types.symbol_table import SymbolTable
@@ -43,7 +42,7 @@ class QueryTable(Query):
 class QueryJoin(Query):
     left: Query
     right: Query
-    condition: BExpr
+    condition: Expr
     output_name: str
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
@@ -73,7 +72,7 @@ class QueryJoin(Query):
 class QuerySelect(Query):
     select_list: List[SExpr]
     from_query: Query
-    condition: Optional[BExpr] = None
+    condition: Optional[Expr] = None
     groupby: Optional[str] = None
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
@@ -194,7 +193,7 @@ def query_join():
             break
         right = yield query_terminal
         yield (whitespace >> string_ignore_case("ON") << whitespace)
-        condition = yield b_expr
+        condition = yield expr
         yield (whitespace >> string_ignore_case("AS") << whitespace)
         output_table_name = yield t_name
 
@@ -231,7 +230,7 @@ def query_select():
     condition = None
     where_token = yield (whitespace >> string_ignore_case("WHERE") << whitespace).optional()
     if where_token != None:
-        condition = yield b_expr
+        condition = yield expr
 
     groupby = None
     groupby_token = yield (whitespace >> string_ignore_case("GROUP BY") << whitespace).optional()

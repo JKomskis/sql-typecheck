@@ -1,8 +1,6 @@
 import unittest
 
-from src.parsing.bool_expr import BExprColumn, BExprEquality, EqualityOperator
-from src.parsing.expr import ExprColumn
-from src.parsing.int_expr import IExprColumn
+from src.parsing.expr import BinaryOp, ExprBinaryOp, ExprColumn
 from src.parsing.query import QueryJoin, QuerySelect, QueryTable
 from src.parsing.statements import (StmtCreateTable, StmtQuery, StmtSequence,
                                     TableElement)
@@ -129,7 +127,7 @@ class TestStmtQuery(unittest.TestCase):
                 StmtQuery(QuerySelect(
                     [ExprColumn(("s", "ssn"))],
                     QueryTable("students", "s"),
-                    BExprColumn(("s", "graduate"))))
+                    ExprColumn(("s", "graduate"))))
             ]).type_check(st),
             ("s", Schema({
                 "ssn": BaseType.INT
@@ -144,10 +142,10 @@ class TestStmtQuery(unittest.TestCase):
                 StmtQuery(QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "ssn")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "id"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "id"))
                     ),
                     "s_e"
                 ))

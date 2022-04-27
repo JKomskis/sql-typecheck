@@ -1,135 +1,144 @@
 import unittest
 
-from src.parsing.bool_expr import BExprAnd, BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator
-from src.parsing.int_expr import IExprIntLiteral
-
 from src.types.symbol_table import SymbolTable
 from src.types.types import BaseType, Expression, Schema, TypeCheckingError, TypeMismatchError
+from src.parsing.expr import BinaryOp, ExprBinaryOp, ExprBoolLiteral, ExprColumn, ExprIntLiteral, ExprNot
 
 
 class TestLiteral(unittest.TestCase):
     def test_true(self):
-        self.assertEqual(BExprBoolLiteral(
+        self.assertEqual(ExprBoolLiteral(
             True).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
     def test_false(self):
-        self.assertEqual(BExprBoolLiteral(
+        self.assertEqual(ExprBoolLiteral(
             False).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
 
 class TestAnd(unittest.TestCase):
     def test_and_literals(self):
-        self.assertEqual(BExprAnd(BExprBoolLiteral(True), BExprBoolLiteral(
+        self.assertEqual(ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND, ExprBoolLiteral(
             True)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
     def test_and_nested(self):
-        self.assertEqual(BExprAnd(
-            BExprBoolLiteral(True),
-            BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(True))
+        self.assertEqual(ExprBinaryOp(
+            ExprBoolLiteral(True),
+            BinaryOp.AND,
+            ExprBinaryOp(ExprBoolLiteral(False),
+                         BinaryOp.AND, ExprBoolLiteral(True))
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        self.assertEqual(BExprAnd(
-            BExprAnd(
-                BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(True)),
-                BExprBoolLiteral(True)
+        self.assertEqual(ExprBinaryOp(
+            ExprBinaryOp(
+                ExprBinaryOp(ExprBoolLiteral(False),
+                             BinaryOp.AND, ExprBoolLiteral(True)),
+                BinaryOp.AND,
+                ExprBoolLiteral(True)
             ),
-            BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(False))
+            BinaryOp.AND,
+            ExprBinaryOp(ExprBoolLiteral(False),
+                         BinaryOp.AND, ExprBoolLiteral(False))
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
 
 class TestNot(unittest.TestCase):
     def test_not_literals(self):
-        self.assertEqual(BExprNot(BExprBoolLiteral(False)).type_check(
+        self.assertEqual(ExprNot(ExprBoolLiteral(False)).type_check(
             SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
     def test_not_nested(self):
-        self.assertEqual(BExprNot(BExprNot(BExprBoolLiteral(True))).type_check(
+        self.assertEqual(ExprNot(ExprNot(ExprBoolLiteral(True))).type_check(
             SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        self.assertEqual(BExprNot(BExprAnd(
-            BExprNot(BExprBoolLiteral(True)),
-            BExprBoolLiteral(True)
+        self.assertEqual(ExprNot(ExprBinaryOp(
+            ExprNot(ExprBoolLiteral(True)),
+            BinaryOp.AND,
+            ExprBoolLiteral(True)
         )).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
 
     def test_not_bool(self):
         with self.assertRaises(TypeCheckingError):
-            self.assertEqual(BExprNot(IExprIntLiteral(0)
-                                      ).type_check(SymbolTable()))
+            self.assertEqual(ExprNot(ExprIntLiteral(0)
+                                     ).type_check(SymbolTable()))
 
 
 class TestEquality(unittest.TestCase):
     def test_equals(self):
-        self.assertEqual(BExprEquality(BExprBoolLiteral(True), EqualityOperator.EQUALS,
-                         BExprBoolLiteral(False)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
+        self.assertEqual(ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.EQUALS,
+                         ExprBoolLiteral(False)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
         with self.assertRaises(TypeCheckingError):
-            BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN,
-                          BExprBoolLiteral(True)).type_check(SymbolTable())
+            ExprBinaryOp(ExprBoolLiteral(False), BinaryOp.LESS_THAN,
+                         ExprBoolLiteral(True)).type_check(SymbolTable())
 
     def test_equals_and_nested(self):
-        self.assertEqual(BExprEquality(
-            BExprBoolLiteral(True),
-            EqualityOperator.EQUALS,
-            BExprAnd(BExprBoolLiteral(False), BExprBoolLiteral(False))
+        self.assertEqual(ExprBinaryOp(
+            ExprBoolLiteral(True),
+            BinaryOp.EQUALS,
+            ExprBinaryOp(ExprBoolLiteral(False),
+                         BinaryOp.AND, ExprBoolLiteral(False))
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
         with self.assertRaises(TypeCheckingError):
-            BExprEquality(
-                BExprBoolLiteral(False),
-                EqualityOperator.EQUALS,
-                BExprEquality(BExprBoolLiteral(False), EqualityOperator.LESS_THAN, BExprBoolLiteral(True)
-                              ).type_check(SymbolTable()))
+            ExprBinaryOp(
+                ExprBoolLiteral(False),
+                BinaryOp.EQUALS,
+                ExprBinaryOp(ExprBoolLiteral(False), BinaryOp.LESS_THAN, ExprBoolLiteral(True)
+                             ).type_check(SymbolTable()))
 
     def test_equals_int(self):
-        self.assertEqual(BExprEquality(IExprIntLiteral(2), EqualityOperator.EQUALS,
-                         IExprIntLiteral(3)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        self.assertEqual(BExprEquality(IExprIntLiteral(-3), EqualityOperator.LESS_THAN,
-                         IExprIntLiteral(3)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
+        self.assertEqual(ExprBinaryOp(ExprIntLiteral(2), BinaryOp.EQUALS,
+                         ExprIntLiteral(3)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
+        self.assertEqual(ExprBinaryOp(ExprIntLiteral(-3), BinaryOp.LESS_THAN,
+                         ExprIntLiteral(3)).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
         with self.assertRaises(TypeCheckingError):
-            BExprEquality(IExprIntLiteral(0), EqualityOperator.LESS_THAN,
-                          BExprBoolLiteral(False)).type_check(SymbolTable())
+            ExprBinaryOp(ExprIntLiteral(0), BinaryOp.LESS_THAN,
+                         ExprBoolLiteral(False)).type_check(SymbolTable())
         with self.assertRaises(TypeCheckingError):
-            BExprEquality(BExprBoolLiteral(True), EqualityOperator.EQUALS,
-                          IExprIntLiteral(1)).type_check(SymbolTable())
+            ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.EQUALS,
+                         ExprIntLiteral(1)).type_check(SymbolTable())
 
     def test_equals_and_int(self):
-        self.assertEqual(BExprEquality(
-            BExprEquality(
-                IExprIntLiteral(-1),
-                EqualityOperator.EQUALS,
-                IExprIntLiteral(1)
+        self.assertEqual(ExprBinaryOp(
+            ExprBinaryOp(
+                ExprIntLiteral(-1),
+                BinaryOp.EQUALS,
+                ExprIntLiteral(1)
             ),
-            EqualityOperator.EQUALS,
-            BExprBoolLiteral(True)
+            BinaryOp.EQUALS,
+            ExprBoolLiteral(True)
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        self.assertEqual(BExprAnd(
-            BExprEquality(
-                IExprIntLiteral(42),
-                EqualityOperator.EQUALS,
-                IExprIntLiteral(42)
+        self.assertEqual(ExprBinaryOp(
+            ExprBinaryOp(
+                ExprIntLiteral(42),
+                BinaryOp.EQUALS,
+                ExprIntLiteral(42)
             ),
-            BExprEquality(
-                IExprIntLiteral(-6),
-                EqualityOperator.EQUALS,
-                IExprIntLiteral(-9)
+            BinaryOp.AND,
+            ExprBinaryOp(
+                ExprIntLiteral(-6),
+                BinaryOp.EQUALS,
+                ExprIntLiteral(-9)
             )
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
-        self.assertEqual(BExprAnd(
-            BExprEquality(
-                IExprIntLiteral(42),
-                EqualityOperator.EQUALS,
-                IExprIntLiteral(42)
+        self.assertEqual(ExprBinaryOp(
+            ExprBinaryOp(
+                ExprIntLiteral(42),
+                BinaryOp.EQUALS,
+                ExprIntLiteral(42)
             ),
-            BExprEquality(
-                BExprBoolLiteral(True),
-                EqualityOperator.EQUALS,
-                BExprBoolLiteral(False)
+            BinaryOp.AND,
+            ExprBinaryOp(
+                ExprBoolLiteral(True),
+                BinaryOp.EQUALS,
+                ExprBoolLiteral(False)
             )
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.BOOL))
         with self.assertRaises(TypeCheckingError):
-            BExprAnd(
-                BExprEquality(
-                    IExprIntLiteral(-1),
-                    EqualityOperator.EQUALS,
-                    IExprIntLiteral(1)
+            ExprBinaryOp(
+                ExprBinaryOp(
+                    ExprIntLiteral(-1),
+                    BinaryOp.EQUALS,
+                    ExprIntLiteral(1)
                 ),
-                IExprIntLiteral(0)
+                BinaryOp.AND,
+                ExprIntLiteral(0)
             ).type_check(SymbolTable())
 
 
@@ -138,12 +147,12 @@ class TestColumn(unittest.TestCase):
         st = SymbolTable({
             "a": Schema({"b": BaseType.BOOL}),
         })
-        self.assertEqual(BExprColumn(("a", "b")).type_check(
+        self.assertEqual(ExprColumn(("a", "b")).type_check(
             st), Expression(Schema({"a.b": BaseType.BOOL}), BaseType.BOOL))
         with self.assertRaises(KeyError):
-            BExprColumn(("a", "z")).type_check(st)
+            ExprColumn(("a", "z")).type_check(st)
         with self.assertRaises(KeyError):
-            BExprColumn(("c", "b")).type_check(st)
+            ExprColumn(("c", "b")).type_check(st)
 
     def test_column_and(self):
         st = SymbolTable({
@@ -153,17 +162,20 @@ class TestColumn(unittest.TestCase):
                 "i": BaseType.INT,
             }),
         })
-        self.assertEqual(BExprAnd(BExprColumn(("a", "b")), BExprColumn(
+        self.assertEqual(ExprBinaryOp(ExprColumn(("a", "b")), BinaryOp.AND, ExprColumn(
             ("a", "c"))).type_check(st), Expression(Schema({"a.b": BaseType.BOOL, "a.c": BaseType.BOOL}), BaseType.BOOL))
-        self.assertEqual(BExprAnd(BExprBoolLiteral(True), BExprColumn(
+        self.assertEqual(ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND, ExprColumn(
             ("a", "c"))).type_check(st), Expression(Schema({"a.c": BaseType.BOOL}), BaseType.BOOL))
-        self.assertEqual(BExprAnd(
-            BExprAnd(BExprBoolLiteral(True), BExprColumn(("a", "c"))),
-            BExprColumn(("a", "c"))
+        self.assertEqual(ExprBinaryOp(
+            ExprBinaryOp(ExprBoolLiteral(True), BinaryOp.AND,
+                         ExprColumn(("a", "c"))),
+            BinaryOp.AND,
+            ExprColumn(("a", "c"))
         ).type_check(st), Expression(Schema({"a.c": BaseType.BOOL}), BaseType.BOOL))
         with self.assertRaises(TypeMismatchError):
-            BExprAnd(BExprBoolLiteral(True),
-                     BExprColumn(("a", "i"))).type_check(st)
+            ExprBinaryOp(ExprBoolLiteral(True),
+                         BinaryOp.AND,
+                         ExprColumn(("a", "i"))).type_check(st)
 
     def test_column_not(self):
         st = SymbolTable({
@@ -172,14 +184,15 @@ class TestColumn(unittest.TestCase):
                 "i": BaseType.INT,
             }),
         })
-        self.assertEqual(BExprNot(BExprColumn(("a", "b"))
-                                  ).type_check(st), Expression(Schema({"a.b": BaseType.BOOL}), BaseType.BOOL))
-        self.assertEqual(BExprAnd(
-            BExprColumn(("a", "b")),
-            BExprNot(BExprColumn(("a", "b")))
+        self.assertEqual(ExprNot(ExprColumn(("a", "b"))
+                                 ).type_check(st), Expression(Schema({"a.b": BaseType.BOOL}), BaseType.BOOL))
+        self.assertEqual(ExprBinaryOp(
+            ExprColumn(("a", "b")),
+            BinaryOp.AND,
+            ExprNot(ExprColumn(("a", "b")))
         ).type_check(st), Expression(Schema({"a.b": BaseType.BOOL}), BaseType.BOOL))
         with self.assertRaises(TypeMismatchError):
-            BExprNot(BExprColumn(("a", "i"))).type_check(st)
+            ExprNot(ExprColumn(("a", "i"))).type_check(st)
 
     def test_column_equality(self):
         st = SymbolTable({
@@ -191,16 +204,16 @@ class TestColumn(unittest.TestCase):
             }),
         })
         # TODO: add varchar expressions
-        # self.assertEqual(BExprEquality(
+        # self.assertEqual(ExprBinaryOp(
         #     VExprColumn(("a", "s")),
-        #     EqualityOperator.LESS_THAN,
+        #     BinaryOp.LESS_THAN,
         #     VExprColumn(("a", "s"))
         # ).type_check(st), Expression(Schema({"s": BaseType.VARCHAR, "s": BaseType.VARCHAR}), BaseType.BOOL))
-        self.assertEqual(BExprEquality(
-            BExprColumn(("a", "b")),
-            EqualityOperator.EQUALS,
-            BExprColumn(("a", "c"))
+        self.assertEqual(ExprBinaryOp(
+            ExprColumn(("a", "b")),
+            BinaryOp.EQUALS,
+            ExprColumn(("a", "c"))
         ).type_check(st), Expression(Schema({"a.b": BaseType.BOOL, "a.c": BaseType.BOOL}), BaseType.BOOL))
         with self.assertRaises(TypeMismatchError):
-            BExprEquality(BExprColumn(("a", "i")), EqualityOperator.EQUALS, BExprColumn(
+            ExprBinaryOp(ExprColumn(("a", "i")), BinaryOp.EQUALS, ExprColumn(
                 ("a", "s"))).type_check(st)

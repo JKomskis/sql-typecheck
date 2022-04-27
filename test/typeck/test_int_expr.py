@@ -1,44 +1,43 @@
 import unittest
 
-from src.parsing.int_expr import BinaryIntOp, IExprBinaryOp, IExprColumn, IExprIntLiteral
-
+from src.parsing.expr import BinaryOp, ExprBinaryOp, ExprColumn, ExprIntLiteral
 from src.types.symbol_table import SymbolTable
 from src.types.types import BaseType, Schema, TypeMismatchError, Expression
 
 
 class TestLiteral(unittest.TestCase):
     def test_ints(self):
-        self.assertEqual(IExprIntLiteral(
+        self.assertEqual(ExprIntLiteral(
             0).type_check(SymbolTable()), Expression(Schema({}), BaseType.INT))
-        self.assertEqual(IExprIntLiteral(
+        self.assertEqual(ExprIntLiteral(
             155).type_check(SymbolTable()), Expression(Schema({}), BaseType.INT))
-        self.assertEqual(IExprIntLiteral(
+        self.assertEqual(ExprIntLiteral(
             -2).type_check(SymbolTable()), Expression(Schema({}), BaseType.INT))
 
 
 class TestBinaryOp(unittest.TestCase):
     def test_bin_op_literals(self):
-        self.assertEqual(IExprBinaryOp(IExprIntLiteral(
-            9), BinaryIntOp.ADDITION, IExprIntLiteral(10)).type_check(SymbolTable()),
-                Expression(Schema({}), BaseType.INT))
+        self.assertEqual(ExprBinaryOp(ExprIntLiteral(
+            9), BinaryOp.ADDITION, ExprIntLiteral(10)).type_check(SymbolTable()),
+            Expression(Schema({}), BaseType.INT))
 
     def test_bin_op_nested(self):
-        self.assertEqual(IExprBinaryOp(
-            IExprIntLiteral(2),
-            BinaryIntOp.MULTIPLICATION,
-            IExprBinaryOp(IExprIntLiteral(
-                3), BinaryIntOp.MULTIPLICATION, IExprIntLiteral(4))
+        self.assertEqual(ExprBinaryOp(
+            ExprIntLiteral(2),
+            BinaryOp.MULTIPLICATION,
+            ExprBinaryOp(ExprIntLiteral(
+                3), BinaryOp.MULTIPLICATION, ExprIntLiteral(4))
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.INT))
-        self.assertEqual(IExprBinaryOp(
-            IExprBinaryOp(
-                IExprBinaryOp(IExprIntLiteral(100),
-                              BinaryIntOp.MULTIPLICATION, IExprIntLiteral(4)),
-                BinaryIntOp.MULTIPLICATION,
-                IExprIntLiteral(5)
+        self.assertEqual(ExprBinaryOp(
+            ExprBinaryOp(
+                ExprBinaryOp(ExprIntLiteral(100),
+                             BinaryOp.MULTIPLICATION, ExprIntLiteral(4)),
+                BinaryOp.MULTIPLICATION,
+                ExprIntLiteral(5)
             ),
-            BinaryIntOp.ADDITION,
-            IExprBinaryOp(IExprIntLiteral(-5),
-                          BinaryIntOp.ADDITION, IExprIntLiteral(0))
+            BinaryOp.ADDITION,
+            ExprBinaryOp(ExprIntLiteral(-5),
+                         BinaryOp.ADDITION, ExprIntLiteral(0))
         ).type_check(SymbolTable()), Expression(Schema({}), BaseType.INT))
 
 
@@ -47,19 +46,19 @@ class TestColumn(unittest.TestCase):
         st = SymbolTable({
             "a": Schema({"b": BaseType.INT}),
         })
-        self.assertEqual(IExprColumn(("a", "b")).type_check(st),
-            Expression(Schema({"a.b": BaseType.INT}), BaseType.INT))
+        self.assertEqual(ExprColumn(("a", "b")).type_check(st),
+                         Expression(Schema({"a.b": BaseType.INT}), BaseType.INT))
         with self.assertRaises(KeyError):
-            IExprColumn(("a", "z")).type_check(st)
+            ExprColumn(("a", "z")).type_check(st)
         with self.assertRaises(KeyError):
-            IExprColumn(("c", "b")).type_check(st)
+            ExprColumn(("c", "b")).type_check(st)
         st = SymbolTable({
             "a1": Schema({"b": BaseType.INT}),
             "a2": Schema({"b": BaseType.BOOL}),
         })
-        self.assertEqual(IExprColumn(("a1", "b")).type_check(st),
-            Expression(Schema({"a1.b": BaseType.INT}), BaseType.INT))
-        # should we test xplicitly that type checking IExprColumn(a2.b) errors?
+        self.assertEqual(ExprColumn(("a1", "b")).type_check(st),
+                         Expression(Schema({"a1.b": BaseType.INT}), BaseType.INT))
+        # should we test xplicitly that type checking ExprColumn(a2.b) errors?
 
     def test_column_bin_op(self):
         st = SymbolTable({
@@ -69,35 +68,35 @@ class TestColumn(unittest.TestCase):
                 "j": BaseType.INT,
             }),
         })
-        self.assertEqual(IExprBinaryOp(
-            IExprColumn(("a", "i")),
-            BinaryIntOp.ADDITION,
-            IExprColumn(("a", "j"))
+        self.assertEqual(ExprBinaryOp(
+            ExprColumn(("a", "i")),
+            BinaryOp.ADDITION,
+            ExprColumn(("a", "j"))
         ).type_check(st), Expression(
             Schema({"a.i": BaseType.INT, "a.j": BaseType.INT}),
             BaseType.INT))
 
-        self.assertEqual(IExprBinaryOp(
-            IExprColumn(("a", "i")),
-            BinaryIntOp.MULTIPLICATION,
-            IExprIntLiteral(1000)
+        self.assertEqual(ExprBinaryOp(
+            ExprColumn(("a", "i")),
+            BinaryOp.MULTIPLICATION,
+            ExprIntLiteral(1000)
         ).type_check(st), Expression(
             Schema({"a.i": BaseType.INT}),
             BaseType.INT))
 
-        self.assertEqual(IExprBinaryOp(
-            IExprColumn(("a", "j")),
-            BinaryIntOp.ADDITION,
-            IExprBinaryOp(
-                IExprIntLiteral(-1),
-                BinaryIntOp.MULTIPLICATION,
-                IExprColumn(("a", "j"))
+        self.assertEqual(ExprBinaryOp(
+            ExprColumn(("a", "j")),
+            BinaryOp.ADDITION,
+            ExprBinaryOp(
+                ExprIntLiteral(-1),
+                BinaryOp.MULTIPLICATION,
+                ExprColumn(("a", "j"))
             )
         ).type_check(st), Expression(
-            Schema({"a.j": BaseType.INT, "a.j" : BaseType.INT}),
+            Schema({"a.j": BaseType.INT, "a.j": BaseType.INT}),
             BaseType.INT))
 
         with self.assertRaises(TypeMismatchError):
-            IExprBinaryOp(IExprColumn(
-                ("a", "b")), BinaryIntOp.MULTIPLICATION, IExprIntLiteral(1)).type_check(st)
+            ExprBinaryOp(ExprColumn(
+                ("a", "b")), BinaryOp.MULTIPLICATION, ExprIntLiteral(1)).type_check(st)
         # TODO: Handle above error

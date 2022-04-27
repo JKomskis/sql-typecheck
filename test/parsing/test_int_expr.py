@@ -1,44 +1,45 @@
 import unittest
 
-from src.parsing.int_expr import BinaryIntOp, IExprBinaryOp, IExprColumn, IExprIntLiteral, i_expr
+from src.parsing.expr import (BinaryOp, ExprBinaryOp, ExprColumn,
+                              ExprIntLiteral, expr)
 
 
 class TestLiteral(unittest.TestCase):
     def test_true(self):
-        self.assertEqual(i_expr.parse("0"), IExprIntLiteral(0))
-        self.assertEqual(i_expr.parse("5"), IExprIntLiteral(5))
-        self.assertEqual(i_expr.parse("-100"), IExprIntLiteral(-100))
+        self.assertEqual(expr.parse("0"), ExprIntLiteral(0))
+        self.assertEqual(expr.parse("5"), ExprIntLiteral(5))
+        self.assertEqual(expr.parse("-100"), ExprIntLiteral(-100))
 
 
 class TestMultiplication(unittest.TestCase):
     def test_mult(self):
         self.assertEqual(
-            i_expr.parse("1*2"),
-            IExprBinaryOp(IExprIntLiteral(1),
-                          BinaryIntOp.MULTIPLICATION,
-                          IExprIntLiteral(2))
+            expr.parse("1*2"),
+            ExprBinaryOp(ExprIntLiteral(1),
+                         BinaryOp.MULTIPLICATION,
+                         ExprIntLiteral(2))
         )
         self.assertEqual(
-            i_expr.parse("1*2 * 3"),
-            IExprBinaryOp(
-                IExprBinaryOp(IExprIntLiteral(1),
-                              BinaryIntOp.MULTIPLICATION,
-                              IExprIntLiteral(2)),
-                BinaryIntOp.MULTIPLICATION,
-                IExprIntLiteral(3))
+            expr.parse("1*2 * 3"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprIntLiteral(1),
+                             BinaryOp.MULTIPLICATION,
+                             ExprIntLiteral(2)),
+                BinaryOp.MULTIPLICATION,
+                ExprIntLiteral(3))
         )
         self.assertEqual(
-            i_expr.parse("(1*2) * 3"),
-            i_expr.parse("1*2 * 3")
+            expr.parse("(1*2) * 3"),
+            expr.parse("1*2 * 3")
         )
         self.assertEqual(
-            i_expr.parse("1*(2 * 3)"),
-            IExprBinaryOp(
-                IExprIntLiteral(1),
-                BinaryIntOp.MULTIPLICATION,
-                IExprBinaryOp(IExprIntLiteral(2),
-                              BinaryIntOp.MULTIPLICATION,
-                              IExprIntLiteral(3))
+            expr.parse("1*(2 * 3)"),
+            ExprBinaryOp(
+                ExprIntLiteral(1),
+                BinaryOp.MULTIPLICATION,
+                ExprBinaryOp(ExprIntLiteral(2),
+                             BinaryOp.MULTIPLICATION,
+                             ExprIntLiteral(3))
             )
         )
 
@@ -46,137 +47,137 @@ class TestMultiplication(unittest.TestCase):
 class TestAddition(unittest.TestCase):
     def test_add(self):
         self.assertEqual(
-            i_expr.parse("1+2"),
-            IExprBinaryOp(IExprIntLiteral(1),
-                          BinaryIntOp.ADDITION,
-                          IExprIntLiteral(2))
+            expr.parse("1+2"),
+            ExprBinaryOp(ExprIntLiteral(1),
+                         BinaryOp.ADDITION,
+                         ExprIntLiteral(2))
         )
         self.assertEqual(
-            i_expr.parse("1+2 + 3"),
-            IExprBinaryOp(
-                IExprBinaryOp(IExprIntLiteral(1),
-                              BinaryIntOp.ADDITION,
-                              IExprIntLiteral(2)),
-                BinaryIntOp.ADDITION,
-                IExprIntLiteral(3))
+            expr.parse("1+2 + 3"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprIntLiteral(1),
+                             BinaryOp.ADDITION,
+                             ExprIntLiteral(2)),
+                BinaryOp.ADDITION,
+                ExprIntLiteral(3))
         )
         self.assertEqual(
-            i_expr.parse("(1+2) + 3"),
-            i_expr.parse("1+2 + 3")
+            expr.parse("(1+2) + 3"),
+            expr.parse("1+2 + 3")
         )
         self.assertEqual(
-            i_expr.parse("1+(2 + 3)"),
-            IExprBinaryOp(
-                IExprIntLiteral(1),
-                BinaryIntOp.ADDITION,
-                IExprBinaryOp(IExprIntLiteral(2),
-                              BinaryIntOp.ADDITION,
-                              IExprIntLiteral(3))
+            expr.parse("1+(2 + 3)"),
+            ExprBinaryOp(
+                ExprIntLiteral(1),
+                BinaryOp.ADDITION,
+                ExprBinaryOp(ExprIntLiteral(2),
+                             BinaryOp.ADDITION,
+                             ExprIntLiteral(3))
             )
         )
 
     def test_add_and_mult(self):
         self.assertEqual(
-            i_expr.parse("1*2 + 3"),
-            IExprBinaryOp(
-                IExprBinaryOp(IExprIntLiteral(1),
-                              BinaryIntOp.MULTIPLICATION,
-                              IExprIntLiteral(2)),
-                BinaryIntOp.ADDITION,
-                IExprIntLiteral(3))
+            expr.parse("1*2 + 3"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprIntLiteral(1),
+                             BinaryOp.MULTIPLICATION,
+                             ExprIntLiteral(2)),
+                BinaryOp.ADDITION,
+                ExprIntLiteral(3))
         )
         self.assertEqual(
-            i_expr.parse("1*(2 + 3)"),
-            IExprBinaryOp(
-                IExprIntLiteral(1),
-                BinaryIntOp.MULTIPLICATION,
-                IExprBinaryOp(IExprIntLiteral(2),
-                              BinaryIntOp.ADDITION,
-                              IExprIntLiteral(3)))
+            expr.parse("1*(2 + 3)"),
+            ExprBinaryOp(
+                ExprIntLiteral(1),
+                BinaryOp.MULTIPLICATION,
+                ExprBinaryOp(ExprIntLiteral(2),
+                             BinaryOp.ADDITION,
+                             ExprIntLiteral(3)))
         )
         self.assertEqual(
-            i_expr.parse("3 + 1*2"),
-            i_expr.parse("3 + (1*2)")
+            expr.parse("3 + 1*2"),
+            expr.parse("3 + (1*2)")
         )
         self.assertEqual(
-            i_expr.parse("1*2+3*4"),
-            IExprBinaryOp(
-                IExprBinaryOp(IExprIntLiteral(1),
-                              BinaryIntOp.MULTIPLICATION,
-                              IExprIntLiteral(2)),
-                BinaryIntOp.ADDITION,
-                IExprBinaryOp(IExprIntLiteral(3),
-                              BinaryIntOp.MULTIPLICATION,
-                              IExprIntLiteral(4))
+            expr.parse("1*2+3*4"),
+            ExprBinaryOp(
+                ExprBinaryOp(ExprIntLiteral(1),
+                             BinaryOp.MULTIPLICATION,
+                             ExprIntLiteral(2)),
+                BinaryOp.ADDITION,
+                ExprBinaryOp(ExprIntLiteral(3),
+                             BinaryOp.MULTIPLICATION,
+                             ExprIntLiteral(4))
             )
         )
         self.assertEqual(
-            i_expr.parse("1+2*3+4"),
-            IExprBinaryOp(
-                IExprBinaryOp(
-                    IExprIntLiteral(1),
-                    BinaryIntOp.ADDITION,
-                    IExprBinaryOp(IExprIntLiteral(2),
-                                  BinaryIntOp.MULTIPLICATION,
-                                  IExprIntLiteral(3))
+            expr.parse("1+2*3+4"),
+            ExprBinaryOp(
+                ExprBinaryOp(
+                    ExprIntLiteral(1),
+                    BinaryOp.ADDITION,
+                    ExprBinaryOp(ExprIntLiteral(2),
+                                 BinaryOp.MULTIPLICATION,
+                                 ExprIntLiteral(3))
                 ),
-                BinaryIntOp.ADDITION,
-                IExprIntLiteral(4))
+                BinaryOp.ADDITION,
+                ExprIntLiteral(4))
         )
 
 
 class TestColumnName(unittest.TestCase):
     def test_column_name(self):
-        self.assertEqual(i_expr.parse("a.b"), IExprColumn(("a", "b")))
+        self.assertEqual(expr.parse("a.b"), ExprColumn(("a", "b")))
 
     def test_column_add(self):
         self.assertEqual(
-            i_expr.parse("(a.b+2) + (3+c.d)"),
-            IExprBinaryOp(
-                IExprBinaryOp(
-                    IExprColumn(("a", "b")),
-                    BinaryIntOp.ADDITION,
-                    IExprIntLiteral(2)
+            expr.parse("(a.b+2) + (3+c.d)"),
+            ExprBinaryOp(
+                ExprBinaryOp(
+                    ExprColumn(("a", "b")),
+                    BinaryOp.ADDITION,
+                    ExprIntLiteral(2)
                 ),
-                BinaryIntOp.ADDITION,
-                IExprBinaryOp(
-                    IExprIntLiteral(3),
-                    BinaryIntOp.ADDITION,
-                    IExprColumn(("c", "d")),
+                BinaryOp.ADDITION,
+                ExprBinaryOp(
+                    ExprIntLiteral(3),
+                    BinaryOp.ADDITION,
+                    ExprColumn(("c", "d")),
                 )
             )
         )
 
     def test_column_add_mult(self):
         self.assertEqual(
-            i_expr.parse("(a.b+2) * (3+c.d)"),
-            IExprBinaryOp(
-                IExprBinaryOp(
-                    IExprColumn(("a", "b")),
-                    BinaryIntOp.ADDITION,
-                    IExprIntLiteral(2)
+            expr.parse("(a.b+2) * (3+c.d)"),
+            ExprBinaryOp(
+                ExprBinaryOp(
+                    ExprColumn(("a", "b")),
+                    BinaryOp.ADDITION,
+                    ExprIntLiteral(2)
                 ),
-                BinaryIntOp.MULTIPLICATION,
-                IExprBinaryOp(
-                    IExprIntLiteral(3),
-                    BinaryIntOp.ADDITION,
-                    IExprColumn(("c", "d")),
+                BinaryOp.MULTIPLICATION,
+                ExprBinaryOp(
+                    ExprIntLiteral(3),
+                    BinaryOp.ADDITION,
+                    ExprColumn(("c", "d")),
                 )
             )
         )
         self.assertEqual(
-            i_expr.parse("(a.b*2) + (3*c.d)"),
-            IExprBinaryOp(
-                IExprBinaryOp(
-                    IExprColumn(("a", "b")),
-                    BinaryIntOp.MULTIPLICATION,
-                    IExprIntLiteral(2)
+            expr.parse("(a.b*2) + (3*c.d)"),
+            ExprBinaryOp(
+                ExprBinaryOp(
+                    ExprColumn(("a", "b")),
+                    BinaryOp.MULTIPLICATION,
+                    ExprIntLiteral(2)
                 ),
-                BinaryIntOp.ADDITION,
-                IExprBinaryOp(
-                    IExprIntLiteral(3),
-                    BinaryIntOp.MULTIPLICATION,
-                    IExprColumn(("c", "d")),
+                BinaryOp.ADDITION,
+                ExprBinaryOp(
+                    ExprIntLiteral(3),
+                    BinaryOp.MULTIPLICATION,
+                    ExprColumn(("c", "d")),
                 )
             )
         )

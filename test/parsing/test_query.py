@@ -1,10 +1,10 @@
 import unittest
-from src.parsing.bool_expr import BExprBoolLiteral, BExprColumn, BExprEquality, BExprNot, EqualityOperator
-from src.parsing.data_structures import SExpr
-from src.parsing.expr import ExprColumn
-from src.parsing.int_expr import BinaryIntOp, IExprBinaryOp, IExprColumn, IExprIntLiteral
 
-from src.parsing.query import QueryJoin, QuerySelect, QueryUnion, QueryIntersect, QueryTable, query
+from src.parsing.expr import (BinaryOp, ExprBinaryOp, ExprBoolLiteral,
+                              ExprColumn, ExprIntLiteral, ExprNot)
+from src.parsing.query import (QueryIntersect, QueryJoin, QuerySelect,
+                               QueryTable, QueryUnion, query)
+from src.parsing.s_expr import SExpr
 
 
 class TestQueryTable(unittest.TestCase):
@@ -51,12 +51,12 @@ class TestQuerySelect(unittest.TestCase):
                 "SELECT students.graduate AS g, 0,1+2, true FROM students"),
             QuerySelect(
                 [SExpr(ExprColumn(("students", "graduate")), "g"),
-                 SExpr(IExprIntLiteral(0)),
-                 SExpr(IExprBinaryOp(
-                     IExprIntLiteral(1),
-                     BinaryIntOp.ADDITION,
-                     IExprIntLiteral(2))),
-                 SExpr(BExprBoolLiteral(True))],
+                 SExpr(ExprIntLiteral(0)),
+                 SExpr(ExprBinaryOp(
+                     ExprIntLiteral(1),
+                     BinaryOp.ADDITION,
+                     ExprIntLiteral(2))),
+                 SExpr(ExprBoolLiteral(True))],
                 QueryTable("students")
             )
         )
@@ -67,7 +67,7 @@ class TestQuerySelect(unittest.TestCase):
             QuerySelect(
                 [SExpr(ExprColumn(("students", "ssn")))],
                 QueryTable("students"),
-                BExprBoolLiteral(True)
+                ExprBoolLiteral(True)
             )
         )
         self.assertEqual(
@@ -77,10 +77,10 @@ class TestQuerySelect(unittest.TestCase):
                 [SExpr(ExprColumn(("students", "ssn"))),
                  SExpr(ExprColumn(("students", "year")))],
                 QueryTable("students"),
-                BExprEquality(
-                    IExprColumn(("students", "ssn")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("students", "year"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "ssn")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("students", "year"))
                 )
             )
         )
@@ -92,7 +92,7 @@ class TestQuerySelect(unittest.TestCase):
             QuerySelect(
                 [SExpr(ExprColumn(("students", "ssn")))],
                 QueryTable("students"),
-                BExprBoolLiteral(True),
+                ExprBoolLiteral(True),
                 "id"
             )
         )
@@ -140,12 +140,12 @@ class TestQueryUnion(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 ),
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "undergraduate"))
+                    ExprColumn(("students", "undergraduate"))
                 )
             ])
         )
@@ -159,20 +159,20 @@ class TestQueryUnion(unittest.TestCase):
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "ssn")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "ssn"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "ssn"))
                     ),
                     "s_e"
                 ),
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "gpa")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "grade"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "gpa")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "grade"))
                     ),
                     "s_e2"
                 )
@@ -188,7 +188,7 @@ class TestQueryUnion(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 )
             ])
         )
@@ -221,12 +221,12 @@ class TestQueryIntersect(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 ),
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "undergraduate"))
+                    ExprColumn(("students", "undergraduate"))
                 )
             ])
         )
@@ -240,20 +240,20 @@ class TestQueryIntersect(unittest.TestCase):
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "ssn")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "ssn"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "ssn"))
                     ),
                     "s_e"
                 ),
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "gpa")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "grade"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "gpa")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "grade"))
                     ),
                     "s_e2"
                 )
@@ -269,7 +269,7 @@ class TestQueryIntersect(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 )
             ])
         )
@@ -301,24 +301,24 @@ class TestQueryIntersectUnion(unittest.TestCase):
                     QuerySelect(
                         [SExpr(ExprColumn(("students", "ssn")))],
                         QueryTable("students"),
-                        BExprColumn(("students", "graduate"))
+                        ExprColumn(("students", "graduate"))
                     ),
                     QuerySelect(
                         [SExpr(ExprColumn(("students", "ssn")))],
                         QueryTable("students"),
-                        BExprColumn(("students", "undergraduate"))
+                        ExprColumn(("students", "undergraduate"))
                     )
                 ]),
                 QueryIntersect([
                     QuerySelect(
                         [SExpr(ExprColumn(("students", "ssn")))],
                         QueryTable("students"),
-                        BExprColumn(("students", "enrolled"))
+                        ExprColumn(("students", "enrolled"))
                     ),
                     QuerySelect(
                         [SExpr(ExprColumn(("students", "ssn")))],
                         QueryTable("students"),
-                        BExprColumn(("students", "graduate"))
+                        ExprColumn(("students", "graduate"))
                     )
                 ])
             ])
@@ -334,24 +334,24 @@ class TestQueryIntersectUnion(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 ),
                 QueryUnion([
                     QuerySelect(
                         [SExpr(ExprColumn(("students", "ssn")))],
                         QueryTable("students"),
-                        BExprColumn(("students", "undergraduate"))
+                        ExprColumn(("students", "undergraduate"))
                     ),
                     QuerySelect(
                         [SExpr(ExprColumn(("students", "ssn")))],
                         QueryTable("students"),
-                        BExprColumn(("students", "enrolled"))
+                        ExprColumn(("students", "enrolled"))
                     ),
                 ]),
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 )
             ])
         )
@@ -365,10 +365,10 @@ class TestQueryJoin(unittest.TestCase):
             QueryJoin(
                 QueryTable("students"),
                 QueryTable("enrolled"),
-                BExprEquality(
-                    IExprColumn(("students", "id")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("enrolled", "id"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "id")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("enrolled", "id"))
                 ),
                 "s_e"
             )
@@ -382,17 +382,17 @@ class TestQueryJoin(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprEquality(
-                        IExprColumn(("students", "gpa")),
-                        EqualityOperator.LESS_THAN,
-                        IExprIntLiteral(3)
+                    ExprBinaryOp(
+                        ExprColumn(("students", "gpa")),
+                        BinaryOp.LESS_THAN,
+                        ExprIntLiteral(3)
                     )
                 ),
                 QueryTable("enrolled"),
-                BExprEquality(
-                    IExprColumn(("students", "id")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("enrolled", "id"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "id")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("enrolled", "id"))
                 ),
                 "s_e"
             )
@@ -411,14 +411,14 @@ class TestQueryJoin(unittest.TestCase):
                 QuerySelect(
                     [SExpr(ExprColumn(("enrolled", "id")))],
                     QueryTable("enrolled"),
-                    BExprNot(
-                        BExprColumn(("enrolled", "dropped"))
+                    ExprNot(
+                        ExprColumn(("enrolled", "dropped"))
                     )
                 ),
-                BExprEquality(
-                    IExprColumn(("students", "id")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("enrolled", "id"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "id")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("enrolled", "id"))
                 ),
                 "s_e"
             )
@@ -440,13 +440,13 @@ class TestQueryJoin(unittest.TestCase):
                 QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "id")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "id"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "id")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "id"))
                     ),
                     "s_e"
                 ),
-                BExprColumn(("students", "graduate"))
+                ExprColumn(("students", "graduate"))
             )
         )

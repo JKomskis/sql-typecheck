@@ -1,11 +1,10 @@
 import unittest
-from src.parsing.bool_expr import BExprColumn, BExprEquality, EqualityOperator
-from src.parsing.data_structures import SExpr
-from src.parsing.int_expr import IExprColumn
 
-from src.parsing.statements import StmtCreateTable, StmtQuery, StmtSequence, TableElement, stmt_create_table, stmt_sequence
+from src.parsing.expr import BinaryOp, ExprBinaryOp, ExprColumn
 from src.parsing.query import QueryJoin, QuerySelect, QueryTable
-from src.parsing.expr import ExprColumn
+from src.parsing.s_expr import SExpr
+from src.parsing.statements import (StmtCreateTable, StmtQuery, StmtSequence,
+                                    TableElement, stmt_sequence)
 from src.types.types import BaseType
 
 
@@ -39,7 +38,7 @@ class TestStmtQuery(unittest.TestCase):
             StmtSequence([StmtQuery(QuerySelect(
                 [SExpr(ExprColumn(("students", "ssn")))],
                 QueryTable("students"),
-                BExprColumn(("students", "graduate"))
+                ExprColumn(("students", "graduate"))
             ))])
         )
         self.assertEqual(
@@ -48,10 +47,10 @@ class TestStmtQuery(unittest.TestCase):
             StmtSequence([StmtQuery(QueryJoin(
                 QueryTable("students"),
                 QueryTable("enrolled"),
-                BExprEquality(
-                    IExprColumn(("students", "id")),
-                    EqualityOperator.EQUALS,
-                    IExprColumn(("enrolled", "id"))
+                ExprBinaryOp(
+                    ExprColumn(("students", "id")),
+                    BinaryOp.EQUALS,
+                    ExprColumn(("enrolled", "id"))
                 ),
                 "s_e"
             ))])
@@ -77,7 +76,7 @@ class TestStmtSequence(unittest.TestCase):
                 StmtQuery(QuerySelect(
                     [SExpr(ExprColumn(("students", "ssn")))],
                     QueryTable("students"),
-                    BExprColumn(("students", "graduate"))
+                    ExprColumn(("students", "graduate"))
                 ))
             ])
         )
@@ -107,10 +106,10 @@ class TestStmtSequence(unittest.TestCase):
                 StmtQuery(QueryJoin(
                     QueryTable("students"),
                     QueryTable("enrolled"),
-                    BExprEquality(
-                        IExprColumn(("students", "id")),
-                        EqualityOperator.EQUALS,
-                        IExprColumn(("enrolled", "id"))
+                    ExprBinaryOp(
+                        ExprColumn(("students", "id")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "id"))
                     ),
                     "s_e"
                 ))
