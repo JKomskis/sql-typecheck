@@ -471,6 +471,12 @@ class TestQuerySelectWhere(unittest.TestCase):
 
 
 
+
+
+
+
+
+
 class TestQueryUnion(unittest.TestCase):
     student_table_schema = Schema({
         "ssn": BaseType.INT,
@@ -573,3 +579,43 @@ class TestQueryUnion(unittest.TestCase):
     #         ])
     #     )
 
+
+
+
+class TestQueryIntersect(unittest.TestCase):
+    student_table_schema = Schema({
+        "ssn": BaseType.INT,
+        "gpa": BaseType.INT,
+        "year": BaseType.INT,
+        "graduate": BaseType.BOOL,
+    })
+
+    student_wrong_schema = Schema({
+        "ssn": BaseType.BOOL,
+        "gpa": BaseType.INT,
+        "year": BaseType.INT,
+        "graduate": BaseType.BOOL,
+    })
+
+    def test_table_intersect(self):
+        st = SymbolTable(
+                {"students": TestQueryIntersect.student_table_schema,
+                "students_2": TestQueryIntersect.student_table_schema})
+        
+        st_nomatch = SymbolTable(
+                {"students": TestQueryIntersect.student_table_schema,
+                "students_2": TestQueryIntersect.student_wrong_schema})
+
+        self.assertEqual( QueryIntersect([
+                QueryTable("students"),
+                QueryTable("students_2")
+            ]).type_check(st), 
+                ("students_students_2", TestQueryIntersect.student_table_schema)
+        )
+
+        with self.assertRaises(TypeMismatchError):
+            QueryIntersect([
+                    QueryTable("students"),
+                    QueryTable("students_2")
+                ]).type_check(st_nomatch), 
+        
