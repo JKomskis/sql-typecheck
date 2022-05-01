@@ -22,7 +22,7 @@ keywords = ["true", "false", "BOOL", "INT", "VARCHAR",
 
 @generate
 def identifier():
-    ident = yield regex("[a-zA-Z][a-zA-Z0-9_]*")
+    ident = yield regex("[a-zA-Z][a-zA-Z0-9_\.]*")
     if ident in keywords:
         return fail("identifier cannot be a keyword")
     return ident
@@ -38,9 +38,19 @@ type_literal = (string_ignore_case("BOOL")
                 | string_ignore_case("INT")
                 | string_ignore_case("VARCHAR")).map(lambda x: x.upper())
 
-t_name = identifier
-c_name = seq(
-    t_name=identifier,
-    _dot=sep("."),
-    c_name=identifier
-).map(lambda x: (x['t_name'], x['c_name']))
+
+@generate
+def t_name():
+    ident = yield identifier
+    if ident.find('.') != -1:
+        return fail("Table name must not contain a .")
+    return ident
+
+
+@generate
+def c_name():
+    ident = yield identifier
+    parts = ident.split('.', 1)
+    if len(parts) < 2:
+        return fail("Column name must have table table and field name")
+    return (parts[0], parts[1])
