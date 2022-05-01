@@ -125,6 +125,39 @@ class TestQueryGroupBy(unittest.TestCase):
                 None,
                 [ExprColumn(("students", "gpa"))]
             ).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            QuerySelect(
+                [
+                    SExpr(ExprColumn(("students", "gpa"))),
+                    SExpr(ExprAgg(AggOp.MIN, ExprColumn(
+                        ("students", "graduate")))),
+                ],
+                QueryTable("students"),
+                None,
+                [ExprColumn(("students", "gpa"))]
+            ).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            QuerySelect(
+                [
+                    SExpr(ExprColumn(("students", "gpa"))),
+                    SExpr(ExprAgg(AggOp.AVG, ExprColumn(
+                        ("students", "graduate")))),
+                ],
+                QueryTable("students"),
+                None,
+                [ExprColumn(("students", "gpa"))]
+            ).type_check(st)
+        with self.assertRaises(TypeMismatchError):
+            QuerySelect(
+                [
+                    SExpr(ExprColumn(("students", "gpa"))),
+                    SExpr(ExprAgg(AggOp.AVG, ExprColumn(
+                        ("students", "name")))),
+                ],
+                QueryTable("students"),
+                None,
+                [ExprColumn(("students", "gpa"))]
+            ).type_check(st)
 
         self.assertEqual(
             QuerySelect(
