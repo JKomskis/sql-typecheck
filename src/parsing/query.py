@@ -108,38 +108,39 @@ class QuerySelect(Query):
 class QueryIntersect(Query):
     queries: List[Query]
 
-    def type_check(self, st: SymbolTable) -> Type:
-        ty = self.queries[0].type_check(st)
+    def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
+        full_name = ""
+        schemas = []
+        prev_name, first_schema = self.queries[0].type_check(st)
+
         for query in self.queries:
-            newty = query.type_check(st)
-            if not newty == ty:
-                raise TypeMismatchError(ty, newty)
-        return ty
+            from_name, from_schema = query.type_check(st)
+            full_name += from_name + "_"
+            if first_schema != from_schema:
+                raise TypeMismatchError(first_schema, from_schema)
+            
+        full_name = full_name.strip("_")
+        return full_name, first_schema
 
 
 @dataclass
 class QueryUnion(Query):
     queries: List[Query]
 
-    def type_check(self, st: SymbolTable) -> Type:
-        ty = self.queries[0].type_check(st)
-        for query in self.queries:
-            newty = query.type_check(st)
-            if not newty == ty:
-                raise TypeMismatchError(ty, newty)
-        return ty
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
-        from_schema = self.from_query.type_check(st)
-        condition_type = self.condition.type_check(st)
-        # Todo: check if from_schema is a subtype of condition type schema
+        full_name = ""
+        schemas = []
+        prev_name, first_schema = self.queries[0].type_check(st)
 
-        schema = Schema({})
-        for select_expr in self.select_list:
-            expr_type = select_expr.type_check(st)
-            # Todo: check if from_schema is a subtype of expression schema
-
-        return self.get_output_table_name(), schema
+        for query in self.queries:
+            from_name, from_schema = query.type_check(st)
+            full_name += from_name + "_"
+            if first_schema != from_schema:
+                raise TypeMismatchError(first_schema, from_schema)
+            
+        full_name = full_name.strip("_")
+        return full_name, first_schema
 
     def get_output_table_name(self) -> str:
         return self.from_query.get_output_table_name()

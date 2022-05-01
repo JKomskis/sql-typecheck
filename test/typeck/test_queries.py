@@ -2,10 +2,10 @@ import unittest
 
 from src.parsing.expr import (BinaryOp, ExprBinaryOp, ExprBoolLiteral,
                               ExprColumn, ExprIntLiteral, ExprNot)
-from src.parsing.query import QueryJoin, QuerySelect, QueryTable
+from src.parsing.query import QueryJoin, QuerySelect, QueryTable, QueryUnion, QueryIntersect
 from src.parsing.s_expr import SExpr
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, RedefinedNameError, Schema
+from src.types.types import BaseType, RedefinedNameError, Schema, TypeMismatchError
 
 
 class TestQueryTable(unittest.TestCase):
@@ -467,3 +467,109 @@ class TestQuerySelectWhere(unittest.TestCase):
                 ),
                 ExprColumn(("myStudents", "gpa"))
             ).type_check(st)
+
+
+
+
+class TestQueryUnion(unittest.TestCase):
+    student_table_schema = Schema({
+        "ssn": BaseType.INT,
+        "gpa": BaseType.INT,
+        "year": BaseType.INT,
+        "graduate": BaseType.BOOL,
+    })
+
+    student_wrong_schema = Schema({
+        "ssn": BaseType.BOOL,
+        "gpa": BaseType.INT,
+        "year": BaseType.INT,
+        "graduate": BaseType.BOOL,
+    })
+
+    def test_table_union(self):
+        st = SymbolTable(
+                {"students": TestQueryUnion.student_table_schema,
+                "students_2": TestQueryUnion.student_table_schema})
+        
+        st_nomatch = SymbolTable(
+                {"students": TestQueryUnion.student_table_schema,
+                "students_2": TestQueryUnion.student_wrong_schema})
+
+        self.assertEqual( QueryUnion([
+                QueryTable("students"),
+                QueryTable("students_2")
+            ]).type_check(st), 
+                ("students_students_2", TestQueryUnion.student_table_schema)
+        )
+
+        with self.assertRaises(TypeMismatchError):
+            QueryUnion([
+                    QueryTable("students"),
+                    QueryTable("students_2")
+                ]).type_check(st_nomatch), 
+        
+                
+            
+
+    # def test_select_union(self):
+    #     self.assertEqual(
+    #         query.parse(
+    #             "SELECT students.ssn FROM students WHERE students.graduate\
+    #                 UNION SELECT students.ssn FROM students WHERE students.undergraduate"),
+    #         QueryUnion([
+    #             QuerySelect(
+    #                 [SExpr(ExprColumn(("students", "ssn")))],
+    #                 QueryTable("students"),
+    #                 ExprColumn(("students", "graduate"))
+    #             ),
+    #             QuerySelect(
+    #                 [SExpr(ExprColumn(("students", "ssn")))],
+    #                 QueryTable("students"),
+    #                 ExprColumn(("students", "undergraduate"))
+    #             )
+    #         ])
+    #     )
+
+    # def test_join_union(self):
+    #     self.assertEqual(
+    #         query.parse(
+    #             "students join enrolled on students.ssn = enrolled.ssn as s_e\
+    #                 UNION students join enrolled on students.gpa = enrolled.grade as s_e2"),
+    #         QueryUnion([
+    #             QueryJoin(
+    #                 QueryTable("students"),
+    #                 QueryTable("enrolled"),
+    #                 ExprBinaryOp(
+    #                     ExprColumn(("students", "ssn")),
+    #                     BinaryOp.EQUALS,
+    #                     ExprColumn(("enrolled", "ssn"))
+    #                 ),
+    #                 "s_e"
+    #             ),
+    #             QueryJoin(
+    #                 QueryTable("students"),
+    #                 QueryTable("enrolled"),
+    #                 ExprBinaryOp(
+    #                     ExprColumn(("students", "gpa")),
+    #                     BinaryOp.EQUALS,
+    #                     ExprColumn(("enrolled", "grade"))
+    #                 ),
+    #                 "s_e2"
+    #             )
+    #         ])
+    #     )
+
+    # def test_mixed_union(self):
+    #     self.assertEqual(
+    #         query.parse("students UNION\
+    #             SELECT students.ssn FROM students WHERE students.graduate"),
+    #         QueryUnion([
+    #             QueryTable("students"),
+    #             QuerySelect(
+    #                 [SExpr(ExprColumn(("students", "ssn")))],
+    #                 QueryTable("students"),
+    #                 ExprColumn(("students", "graduate"))
+    #             )
+    #         ])
+    #     )
+
