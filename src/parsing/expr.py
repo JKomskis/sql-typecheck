@@ -1,13 +1,14 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple
+from typing import List, Tuple
 
 from parsy import generate, string, whitespace
 from src.parsing.terminals import (bool_literal, c_name, int_literal, lparen,
                                    padding, rparen, string_ignore_case,
                                    varchar_literal)
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, Schema, TypeCheckingError, TypeMismatchError
+from src.types.types import AggregationMismatchError, AggregationStatus, BaseType, Expression, Schema, TypeCheckingError, TypeMismatchError
 
 
 @dataclass
@@ -19,6 +20,18 @@ class Expr():
 
     def get_name(self) -> str:
         raise NotImplementedError(f"TODO: write get_name() for {type(self)}")
+
+    def aggregation_status(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        if self in group_by_exprs:
+            if isinstance(self, ExprColumn):
+                return AggregationStatus.EITHER
+            return AggregationStatus.AGGREGATED
+
+        return self.aggregation_status_internal(group_by_exprs)
+
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        raise NotImplementedError(
+            f"TODO: write aggregation_status_internal() for {type(self)}")
 
 
 @dataclass
@@ -37,6 +50,10 @@ class ExprColumn(Expr):
     def get_name(self) -> str:
         return self.table_column_name[1]
 
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        # If the column was aggregated it would have been caught in aggregation_status
+        return AggregationStatus.NOT_AGGREGATED
+
 
 @dataclass
 class ExprIntLiteral(Expr):
@@ -50,6 +67,10 @@ class ExprIntLiteral(Expr):
 
     def get_name(self) -> str:
         return str(self.value)
+
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        # Literals can always be viewed as an aggregation
+        return AggregationStatus.EITHER
 
 
 @dataclass
@@ -65,6 +86,10 @@ class ExprBoolLiteral(Expr):
     def get_name(self) -> str:
         return str(self.value).lower()
 
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        # Literals can always be viewed as an aggregation
+        return AggregationStatus.EITHER
+
 
 @dataclass
 class ExprVarcharLiteral(Expr):
@@ -78,6 +103,10 @@ class ExprVarcharLiteral(Expr):
 
     def get_name(self) -> str:
         return self.value
+
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        # Literals can always be viewed as an aggregation
+        return AggregationStatus.EITHER
 
 
 @dataclass
@@ -100,6 +129,12 @@ class ExprConcat(Expr):
     def get_name(self) -> str:
         return f'{self.left.get_name()}_{self.right.get_name()}'
 
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        return AggregationStatus.combine(
+            self.left.aggregation_status(group_by_exprs),
+            self.right.aggregation_status(group_by_exprs)
+        )
+
 
 @dataclass
 class ExprSubstr(Expr):
@@ -108,7 +143,7 @@ class ExprSubstr(Expr):
     end: Expr
 
     def type_check(self, st: SymbolTable) -> Expression:
-        input_type = self.left.type_check(st)
+        input_type = self.input.type_check(st)
         if input_type.output != BaseType.VARCHAR:
             raise TypeMismatchError(BaseType.VARCHAR, input_type)
         start_type = self.start.type_check(st)
@@ -118,9 +153,14 @@ class ExprSubstr(Expr):
         if end_type.output != BaseType.INT:
             raise TypeMismatchError(BaseType.INT, end_type)
         return Expression(
-            Schema.concat(input_type.inputs),
+            Schema.concat(Schema.concat(input_type.inputs,
+                          start_type.inputs), end_type.inputs),
             BaseType.VARCHAR
         )
+
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        # For simplicity, don't consider substring ever as an aggregate
+        return AggregationStatus.NOT_AGGREGATED
 
 
 class BinaryOp(Enum):
@@ -170,6 +210,12 @@ class ExprBinaryOp(Expr):
     def get_name(self) -> str:
         return f"{self.left.get_name()}_{self.op.value}_{self.right.get_name()}"
 
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        return AggregationStatus.combine(
+            self.left.aggregation_status(group_by_exprs),
+            self.right.aggregation_status(group_by_exprs)
+        )
+
 
 @dataclass
 class ExprNot(Expr):
@@ -183,6 +229,46 @@ class ExprNot(Expr):
 
     def get_name(self) -> str:
         return f"not_{self.node.get_name()}"
+
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        return self.node.aggregation_status(group_by_exprs)
+
+
+class AggOp(Enum):
+    MIN = "min"
+    MAX = "max"
+    AVG = "avg"
+    COUNT = "count"
+
+
+@dataclass
+class ExprAgg(Expr):
+    op: AggOp
+    node: Expr
+
+    def get_name(self) -> str:
+        return f"{self.op.value}_{self.node.get_name()}"
+
+    def type_check(self, st: SymbolTable) -> Expression:
+        node_type = self.node.type_check(st)
+        if self.op == AggOp.MIN or self.op == AggOp.MAX:
+            if node_type.output == BaseType.BOOL:
+                raise TypeMismatchError(BaseType.INT, BaseType.BOOL)
+            return Expression(node_type.inputs, node_type.output)
+        elif self.op == AggOp.AVG:
+            if node_type.output != BaseType.INT:
+                raise TypeMismatchError(BaseType.INT, node_type.output)
+            return Expression(node_type.inputs, node_type.output)
+        elif self.op == AggOp.COUNT:
+            return Expression(node_type.inputs, BaseType.INT)
+        else:
+            raise TypeCheckingError(f"Unknown aggregation operation {self.op}")
+
+    def aggregation_status_internal(self, group_by_exprs: List[Expr]) -> AggregationStatus:
+        if self.node.aggregation_status(group_by_exprs) != AggregationStatus.NOT_AGGREGATED:
+            raise AggregationMismatchError(
+                f'Cannot aggregate an already aggregated expression {self.node}')
+        return AggregationStatus.AGGREGATED
 
 
 @generate
@@ -263,6 +349,7 @@ def expr_paren_terminal():
         | expr_varchar_literal \
         | expr_concat \
         | expr_substr \
+        | expr_agg \
         | lparen >> expr << rparen
     return node
 
@@ -314,3 +401,17 @@ def expr_substr():
     end = yield expr
     yield padding >> string(")")
     return ExprSubstr(input, start, end)
+
+
+@generate
+def expr_agg():
+    op = yield expr_agg_op
+    node = yield lparen >> expr << rparen
+
+    return ExprAgg(op, node)
+
+
+expr_agg_op = (string_ignore_case("MIN")
+               | string_ignore_case("MAX")
+               | string_ignore_case("AVG")
+               | string_ignore_case("COUNT")).map(lambda x: AggOp(x))

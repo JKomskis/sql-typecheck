@@ -108,6 +108,14 @@ class TypeMismatchError(TypeCheckingError):
 
 
 @dataclass
+class AggregationMismatchError(TypeCheckingError):
+    msg: str
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+
+@dataclass
 class SchemaConcatConflictError(TypeCheckingError):
     field: str
     previous: BaseType
@@ -116,3 +124,26 @@ class SchemaConcatConflictError(TypeCheckingError):
     def __init__(self, field: str, previous: BaseType, new_type: BaseType):
         super().__init__(
             f"Schema already has field {field} with type {previous}, cannot add with type {new_type}")
+
+
+class AggregationStatus(Enum):
+    AGGREGATED = 1
+    NOT_AGGREGATED = 2
+    EITHER = 3
+
+    @classmethod
+    def combine(cls, left: AggregationStatus, right: AggregationStatus) -> AggregationStatus:
+        if left == AggregationStatus.AGGREGATED:
+            if right == AggregationStatus.NOT_AGGREGATED:
+                raise AggregationMismatchError(
+                    f'{left} is aggregated, {right} is not')
+            return AggregationStatus.AGGREGATED
+        elif left == AggregationStatus.NOT_AGGREGATED:
+            if right == AggregationStatus.AGGREGATED:
+                raise AggregationMismatchError(
+                    f'{left} is not aggregated, {right} is')
+            return AggregationStatus.NOT_AGGREGATED
+        elif left == AggregationStatus.EITHER:
+            return right
+        else:
+            raise TypeCheckingError(f"Unknown aggregation status {left}")
