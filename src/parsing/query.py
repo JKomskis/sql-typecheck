@@ -112,15 +112,21 @@ class QueryIntersect(Query):
         full_name = ""
         schemas = []
         prev_name, first_schema = self.queries[0].type_check(st)
-        
+
         for query in self.queries:
             from_name, from_schema = query.type_check(st)
-            full_name += from_name + "_"
+            # from_schema = from_schema.simplify()
+            full_name += from_name[0] + from_name[-1] + "_"
             if first_schema != from_schema:
                 raise TypeMismatchError(first_schema, from_schema)
             
         full_name = full_name.strip("_")
-        return full_name, first_schema
+        temp = full_name
+        i = 0
+        while temp in st:
+            temp = full_name + "_" + str(i)
+
+        return temp, first_schema
 
 
 @dataclass
@@ -135,12 +141,17 @@ class QueryUnion(Query):
 
         for query in self.queries:
             from_name, from_schema = query.type_check(st)
-            full_name += from_name + "_"
+            full_name += from_name[0] + from_name[-1]  + "_"
             if first_schema != from_schema:
                 raise TypeMismatchError(first_schema, from_schema)
             
         full_name = full_name.strip("_")
-        return full_name, first_schema
+        temp = full_name
+        i = 0
+        while temp in st:
+            temp = full_name + "_" + str(i)
+
+        return temp, first_schema
 
     def get_output_table_name(self) -> str:
         return self.from_query.get_output_table_name()

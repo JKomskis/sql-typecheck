@@ -507,7 +507,7 @@ class TestQueryUnion(unittest.TestCase):
                 QueryTable("students"),
                 QueryTable("students_2")
             ]).type_check(st), 
-                ("students_students_2", TestQueryUnion.student_table_schema)
+                ("ss_s2", TestQueryUnion.student_table_schema)
         )
 
         with self.assertRaises(TypeMismatchError):
@@ -536,7 +536,7 @@ class TestQueryUnion(unittest.TestCase):
                 )
             ]).type_check(st),
             
-            ("students_students", Schema({
+            ("ss_ss", Schema({
                 "ssn": BaseType.INT
             }))
         )
@@ -570,7 +570,7 @@ class TestQueryUnion(unittest.TestCase):
                 )
             ]).type_check(st), 
 
-            ("s_e_s_e2", Schema({
+            ("se_s2", Schema({
                 "students.ssn": BaseType.INT,
                 "students.gpa": BaseType.INT,
                 "students.year": BaseType.INT,
@@ -639,7 +639,7 @@ class TestQueryIntersect(unittest.TestCase):
                 QueryTable("students"),
                 QueryTable("students_2")
             ]).type_check(st), 
-                ("students_students_2", TestQueryIntersect.student_table_schema)
+                ("ss_s2", TestQueryIntersect.student_table_schema)
         )
 
         with self.assertRaises(TypeMismatchError):
@@ -668,7 +668,7 @@ class TestQueryIntersect(unittest.TestCase):
                     ExprColumn(("students", "undergraduate"))
                 )
             ]).type_check(st),
-                ("students_students", Schema({
+                ("ss_ss", Schema({
                     "ssn": BaseType.INT
                 }))
         )
@@ -700,7 +700,7 @@ class TestQueryIntersect(unittest.TestCase):
                     "s_e2"
                 )
             ]).type_check(st),
-            ("s_e_s_e2", Schema({
+            ("se_s2", Schema({
                 "students.ssn": BaseType.INT,
                 "students.gpa": BaseType.INT,
                 "students.year": BaseType.INT,
@@ -752,7 +752,7 @@ class TestQueryIntersectUnion(unittest.TestCase):
                     QueryTable("students_3")
                 ])
             ]).type_check(st),
-                ("students_students_2_students_3", TestQueryIntersect.student_table_schema)
+                ("ss_s3", TestQueryIntersect.student_table_schema)
         )
 
     def test_select_union_intersect(self):
@@ -785,7 +785,7 @@ class TestQueryIntersectUnion(unittest.TestCase):
                     )
                 ])
             ]).type_check(st),
-                ("students_students_students_students", Schema({
+                ("ss_ss", Schema({
                     "ssn" : BaseType.INT
                 }))
 
