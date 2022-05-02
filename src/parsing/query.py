@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
-from parsy import generate, whitespace, string
 
-from src.parsing.s_expr import SExpr, s_expr
+from parsy import generate, whitespace
 from src.parsing.expr import Expr, expr
-from src.parsing.terminals import string_ignore_case, padding, t_name, lparen, rparen, sep
-
+from src.parsing.s_expr import SExpr, s_expr
+from src.parsing.terminals import (lparen, padding, rparen, sep,
+                                   string_ignore_case, t_name)
 from src.types.symbol_table import SymbolTable
-from src.types.types import BaseType, Expression, RedefinedNameError, Schema, Type, TypeMismatchError
+from src.types.types import (AggregationMismatchError, AggregationStatus,
+                             BaseType, RedefinedNameError, Schema, Type,
+                             TypeMismatchError)
 
 
 @dataclass
@@ -73,7 +75,8 @@ class QuerySelect(Query):
     select_list: List[SExpr]
     from_query: Query
     condition: Optional[Expr] = None
-    groupby: Optional[str] = None
+    groupby_exprs: Optional[List[Expr]] = None
+    having_condition: Optional[Expr] = None
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
         output_schema_fields: Dict[str, BaseType] = {}
@@ -89,17 +92,47 @@ class QuerySelect(Query):
             output_schema_fields[select_expr.get_name()
                                  ] = select_expr_type.output
 
-        if self.condition != None:
-            assert self.condition is not None  # Needed to resolve mypy error
-            schema_for_condition = Schema.concat(
-                from_schema,
-                Schema(output_schema_fields)
-            )
+        internal_schema = Schema.concat(
+            from_schema,
+            Schema(output_schema_fields)
+        )
+        if self.condition is not None:
             condition_type = self.condition.type_check(
-                SymbolTable({from_name: schema_for_condition}))
-            if not schema_for_condition.is_subtype(condition_type.inputs.simplify()):
+                SymbolTable({from_name: internal_schema}))
+            if not internal_schema.is_subtype(condition_type.inputs.simplify()):
                 raise TypeMismatchError(
-                    schema_for_condition, condition_type.inputs.simplify())
+                    internal_schema, condition_type.inputs.simplify())
+            if condition_type.output != BaseType.BOOL:
+                raise TypeMismatchError(BaseType.BOOL, condition_type.output)
+
+        if self.groupby_exprs is not None:
+            for group_expr in self.groupby_exprs:
+                expr_type = group_expr.type_check(
+                    SymbolTable({from_name: internal_schema}))
+                if not internal_schema.is_subtype(expr_type.inputs.simplify()):
+                    raise TypeMismatchError(
+                        internal_schema, expr_type.inputs.simplify())
+
+            for select_expr in self.select_list:
+                if select_expr.expr.aggregation_status(self.groupby_exprs) == AggregationStatus.NOT_AGGREGATED:
+                    raise AggregationMismatchError(
+                        f'Select expression {select_expr.expr} is not aggregated')
+
+            if self.having_condition is not None:
+                expr_type = self.having_condition.type_check(
+                    SymbolTable({from_name: internal_schema}))
+                if not internal_schema.is_subtype(expr_type.inputs.simplify()):
+                    raise TypeMismatchError(
+                        internal_schema, expr_type.inputs.simplify())
+
+                if self.having_condition.aggregation_status(self.groupby_exprs) == AggregationStatus.NOT_AGGREGATED:
+                    raise AggregationMismatchError(
+                        f'Having condition {self.having_condition} is not aggregated')
+
+            if self.condition is not None:
+                if self.condition.aggregation_status(self.groupby_exprs) == AggregationStatus.AGGREGATED:
+                    raise AggregationMismatchError(
+                        f'Where condition {self.condition} is aggregated')
 
         return (from_name, Schema(output_schema_fields))
 
@@ -244,9 +277,14 @@ def query_select():
     if where_token != None:
         condition = yield expr
 
-    groupby = None
-    groupby_token = yield (whitespace >> string_ignore_case("GROUP BY") << whitespace).optional()
+    groupby_exprs = None
+    having_condition = None
+    groupby_token = yield (whitespace + string_ignore_case("GROUP") + whitespace + string_ignore_case("BY") + whitespace).optional()
     if groupby_token != None:
-        groupby = yield t_name
+        groupby_exprs = yield expr.sep_by(sep(","), min=1)
 
-    return QuerySelect(expressions, from_query, condition, groupby)
+        having_token = yield (whitespace >> string_ignore_case("HAVING") << whitespace).optional()
+        if having_token != None:
+            having_condition = yield expr
+
+    return QuerySelect(expressions, from_query, condition, groupby_exprs, having_condition)

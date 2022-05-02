@@ -1,11 +1,13 @@
 import sys
-from src.parsing import parse_sql_program
+
+from src.parsing.statements import stmt_sequence
 from src.types import symbol_table
+
 
 def main(filename):
     with open(filename) as f:
-        stats = parsing.parse_sql_program(f.read())
-        print(stats.type_check(symbol_table.SymbolTable()))
+        statements = stmt_sequence.parse(f.read())
+        print(statements.type_check(symbol_table.SymbolTable()))
 
 
 if __name__ == "__main__":

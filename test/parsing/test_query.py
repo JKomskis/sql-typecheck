@@ -85,18 +85,6 @@ class TestQuerySelect(unittest.TestCase):
             )
         )
 
-    def test_query_select_where_groupby(self):
-        self.assertEqual(
-            query.parse(
-                "SELECT students.ssn FROM students WHERE true GROUP BY id"),
-            QuerySelect(
-                [SExpr(ExprColumn(("students", "ssn")))],
-                QueryTable("students"),
-                ExprBoolLiteral(True),
-                "id"
-            )
-        )
-
     def test_query_select_nested(self):
         self.assertEqual(
             query.parse(
