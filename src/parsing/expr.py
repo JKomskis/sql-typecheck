@@ -118,7 +118,7 @@ class ExprSubstr(Expr):
         if end_type.output != BaseType.INT:
             raise TypeMismatchError(BaseType.INT, end_type)
         return Expression(
-            input_type.inputs,
+            input_type.inputs, #should be a schema but is not
             BaseType.VARCHAR
         )
 
