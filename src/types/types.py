@@ -2,6 +2,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+from operator import truediv
 from typing import DefaultDict, Dict, Tuple
 
 
@@ -57,6 +58,26 @@ class Schema(Type):
                 new_fields[field] = right.fields[field]
 
         return Schema(new_fields)
+
+    @classmethod
+    def equals(cls, left, right):
+        leftdict = {}
+        for field in left.fields:
+            if left.fields[field] not in leftdict:
+                leftdict.update({left.fields[field] : 0})
+            else:
+                leftdict[left.fields[field]] += 1
+        
+        rightdict = {}
+        for field in right.fields:
+            if right.fields[field] not in rightdict:
+                rightdict.update({right.fields[field] : 0})
+            else:
+                rightdict[right.fields[field]] += 1
+        
+        if rightdict == leftdict:
+            return True
+        return False
 
     def expand(self, table_name: str) -> Schema:
         new_fields = {}
