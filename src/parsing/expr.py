@@ -152,8 +152,10 @@ class ExprSubstr(Expr):
         end_type = self.end.type_check(st)
         if end_type.output != BaseType.INT:
             raise TypeMismatchError(BaseType.INT, end_type)
+        final_schema = Schema.concat(input_type.inputs, start_type.inputs)
+        final_schema = Schema.concat(final_schema, end_type.inputs)
         return Expression(
-            input_type.inputs, #should be a schema but is not
+            final_schema, 
             BaseType.VARCHAR
         )
 
