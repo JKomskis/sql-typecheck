@@ -482,7 +482,9 @@ class TestQueryUnion(unittest.TestCase):
         "ssn": BaseType.INT,
         "gpa": BaseType.INT,
         "year": BaseType.INT,
+        "grade": BaseType.INT,
         "graduate": BaseType.BOOL,
+        "undergraduate": BaseType.BOOL
     })
 
     student_wrong_schema = Schema({
@@ -517,58 +519,78 @@ class TestQueryUnion(unittest.TestCase):
                 
             
 
-    # def test_select_union(self):
-    #     self.assertEqual(
-    #         query.parse(
-    #             "SELECT students.ssn FROM students WHERE students.graduate\
-    #                 UNION SELECT students.ssn FROM students WHERE students.undergraduate"),
-    #         QueryUnion([
-    #             QuerySelect(
-    #                 [SExpr(ExprColumn(("students", "ssn")))],
-    #                 QueryTable("students"),
-    #                 ExprColumn(("students", "graduate"))
-    #             ),
-    #             QuerySelect(
-    #                 [SExpr(ExprColumn(("students", "ssn")))],
-    #                 QueryTable("students"),
-    #                 ExprColumn(("students", "undergraduate"))
-    #             )
-    #         ])
-    #     )
+    def test_select_union(self):
+        st = SymbolTable(
+                {"students": TestQueryUnion.student_table_schema})
 
-    # def test_join_union(self):
-    #     self.assertEqual(
-    #         query.parse(
-    #             "students join enrolled on students.ssn = enrolled.ssn as s_e\
-    #                 UNION students join enrolled on students.gpa = enrolled.grade as s_e2"),
-    #         QueryUnion([
-    #             QueryJoin(
-    #                 QueryTable("students"),
-    #                 QueryTable("enrolled"),
-    #                 ExprBinaryOp(
-    #                     ExprColumn(("students", "ssn")),
-    #                     BinaryOp.EQUALS,
-    #                     ExprColumn(("enrolled", "ssn"))
-    #                 ),
-    #                 "s_e"
-    #             ),
-    #             QueryJoin(
-    #                 QueryTable("students"),
-    #                 QueryTable("enrolled"),
-    #                 ExprBinaryOp(
-    #                     ExprColumn(("students", "gpa")),
-    #                     BinaryOp.EQUALS,
-    #                     ExprColumn(("enrolled", "grade"))
-    #                 ),
-    #                 "s_e2"
-    #             )
-    #         ])
-    #     )
+        self.assertEqual(QueryUnion([
+                QuerySelect(
+                    [SExpr(ExprColumn(("students", "ssn")))],
+                    QueryTable("students"),
+                    ExprColumn(("students", "graduate"))
+                ),
+                QuerySelect(
+                    [SExpr(ExprColumn(("students", "ssn")))],
+                    QueryTable("students"),
+                    ExprColumn(("students", "undergraduate"))
+                )
+            ]).type_check(st),
+            
+            ("students_students", Schema({
+                "ssn": BaseType.INT
+            }))
+        )
+
+    def test_join_union(self):
+        st = SymbolTable(
+                {"students": TestQueryUnion.student_table_schema,
+                "enrolled": TestQueryUnion.student_table_schema})
+
+        self.assertEqual(
+            QueryUnion([
+                QueryJoin(
+                    QueryTable("students"),
+                    QueryTable("enrolled"),
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "ssn"))
+                    ),
+                    "s_e"
+                ),
+                QueryJoin(
+                    QueryTable("students"),
+                    QueryTable("enrolled"),
+                    ExprBinaryOp(
+                        ExprColumn(("students", "gpa")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "grade"))
+                    ),
+                    "s_e2"
+                )
+            ]).type_check(st), 
+
+            ("s_e_s_e2", Schema({
+                "students.ssn": BaseType.INT,
+                "students.gpa": BaseType.INT,
+                "students.year": BaseType.INT,
+                "students.grade": BaseType.INT,
+                "students.graduate": BaseType.BOOL,
+                "students.undergraduate": BaseType.BOOL,
+                "enrolled.ssn": BaseType.INT,
+                "enrolled.gpa": BaseType.INT,
+                "enrolled.year": BaseType.INT,
+                "enrolled.grade": BaseType.INT,
+                "enrolled.graduate": BaseType.BOOL,
+                "enrolled.undergraduate": BaseType.BOOL
+            })
+        ))
+        # the above typing should be different. union the types that match.
 
     # def test_mixed_union(self):
+    #     st = SymbolTable(
+    #             {"students": TestQueryUnion.student_table_schema})
     #     self.assertEqual(
-    #         query.parse("students UNION\
-    #             SELECT students.ssn FROM students WHERE students.graduate"),
     #         QueryUnion([
     #             QueryTable("students"),
     #             QuerySelect(
@@ -576,8 +598,13 @@ class TestQueryUnion(unittest.TestCase):
     #                 QueryTable("students"),
     #                 ExprColumn(("students", "graduate"))
     #             )
-    #         ])
+    #         ]).type_check(st),
+    #         ("students", Schema({
+    #             "ssn": BaseType.INT
+    #         }))
     #     )
+        # should the above throw a type mismatch? I think so, 
+        # as two sides of union don't have same cols.
 
 
 
@@ -587,14 +614,16 @@ class TestQueryIntersect(unittest.TestCase):
         "ssn": BaseType.INT,
         "gpa": BaseType.INT,
         "year": BaseType.INT,
+        "grade": BaseType.INT,
         "graduate": BaseType.BOOL,
+        "undergraduate": BaseType.BOOL,
     })
 
     student_wrong_schema = Schema({
         "ssn": BaseType.BOOL,
         "gpa": BaseType.INT,
         "year": BaseType.INT,
-        "graduate": BaseType.BOOL,
+        "graduate": BaseType.BOOL
     })
 
     def test_table_intersect(self):
@@ -618,4 +647,147 @@ class TestQueryIntersect(unittest.TestCase):
                     QueryTable("students"),
                     QueryTable("students_2")
                 ]).type_check(st_nomatch), 
+        
+
+
+
+    def test_select_intersect(self):
+        st = SymbolTable(
+                {"students": TestQueryIntersect.student_table_schema})
+
+        self.assertEqual(
+            QueryIntersect([
+                QuerySelect(
+                    [SExpr(ExprColumn(("students", "ssn")))],
+                    QueryTable("students"),
+                    ExprColumn(("students", "graduate"))
+                ),
+                QuerySelect(
+                    [SExpr(ExprColumn(("students", "ssn")))],
+                    QueryTable("students"),
+                    ExprColumn(("students", "undergraduate"))
+                )
+            ]).type_check(st),
+                ("students_students", Schema({
+                    "ssn": BaseType.INT
+                }))
+        )
+
+    def test_join_intersect(self):
+        st = SymbolTable(
+                {"students": TestQueryIntersect.student_table_schema,
+                "enrolled": TestQueryIntersect.student_table_schema})
+        self.assertEqual(
+            QueryIntersect([
+                QueryJoin(
+                    QueryTable("students"),
+                    QueryTable("enrolled"),
+                    ExprBinaryOp(
+                        ExprColumn(("students", "ssn")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "ssn"))
+                    ),
+                    "s_e"
+                ),
+                QueryJoin(
+                    QueryTable("students"),
+                    QueryTable("enrolled"),
+                    ExprBinaryOp(
+                        ExprColumn(("students", "gpa")),
+                        BinaryOp.EQUALS,
+                        ExprColumn(("enrolled", "grade"))
+                    ),
+                    "s_e2"
+                )
+            ]).type_check(st),
+            ("s_e_s_e2", Schema({
+                "students.ssn": BaseType.INT,
+                "students.gpa": BaseType.INT,
+                "students.year": BaseType.INT,
+                "students.grade": BaseType.INT,
+                "students.graduate": BaseType.BOOL,
+                "students.undergraduate": BaseType.BOOL,
+                "enrolled.ssn": BaseType.INT,
+                "enrolled.gpa": BaseType.INT,
+                "enrolled.year": BaseType.INT,
+                "enrolled.grade": BaseType.INT,
+                "enrolled.graduate": BaseType.BOOL,
+                "enrolled.undergraduate": BaseType.BOOL
+            }))
+
+        )
+
+    # def test_mixed_intersect(self):
+    #     st = SymbolTable(
+    #             {"students": TestQueryIntersect.student_table_schema})
+
+    #     self.assertEqual(
+    #         QueryIntersect([
+    #             QueryTable("students"),
+    #             QuerySelect(
+    #                 [SExpr(ExprColumn(("students", "ssn")))],
+    #                 QueryTable("students"),
+    #                 ExprColumn(("students", "graduate"))
+    #             )
+    #         ]).type_check(st),
+    #             ("students_students", Schema({
+    #                 "ssn": BaseType.INT
+    #             }))
+    #     )
+    # the above should not type check because each side of the intersect
+    # does not have the same amount of cols
+
+
+class TestQueryIntersectUnion(unittest.TestCase):
+    def test_table_union_intersect(self):
+        st = SymbolTable(
+                {"students": TestQueryIntersect.student_table_schema,
+                "students_2": TestQueryIntersect.student_table_schema,
+                "students_3": TestQueryIntersect.student_table_schema}) 
+        self.assertEqual(
+            QueryUnion([
+                QueryTable("students"),
+                QueryIntersect([
+                    QueryTable("students_2"),
+                    QueryTable("students_3")
+                ])
+            ]).type_check(st),
+                ("students_students_2_students_3", TestQueryIntersect.student_table_schema)
+        )
+
+    def test_select_union_intersect(self):
+        st = SymbolTable(
+                {"students": TestQueryIntersect.student_table_schema}) 
+        self.assertEqual(
+            QueryUnion([
+                QueryIntersect([
+                    QuerySelect(
+                        [SExpr(ExprColumn(("students", "ssn")))],
+                        QueryTable("students"),
+                        ExprColumn(("students", "graduate"))
+                    ),
+                    QuerySelect(
+                        [SExpr(ExprColumn(("students", "ssn")))],
+                        QueryTable("students"),
+                        ExprColumn(("students", "undergraduate"))
+                    )
+                ]),
+                QueryIntersect([
+                    QuerySelect(
+                        [SExpr(ExprColumn(("students", "ssn")))],
+                        QueryTable("students"),
+                        ExprColumn(("students", "undergraduate"))
+                    ),
+                    QuerySelect(
+                        [SExpr(ExprColumn(("students", "ssn")))],
+                        QueryTable("students"),
+                        ExprColumn(("students", "graduate"))
+                    )
+                ])
+            ]).type_check(st),
+                ("students_students_students_students", Schema({
+                    "ssn" : BaseType.INT
+                }))
+
+        )
         

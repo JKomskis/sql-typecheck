@@ -112,7 +112,7 @@ class QueryIntersect(Query):
         full_name = ""
         schemas = []
         prev_name, first_schema = self.queries[0].type_check(st)
-
+        
         for query in self.queries:
             from_name, from_schema = query.type_check(st)
             full_name += from_name + "_"
