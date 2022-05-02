@@ -108,7 +108,7 @@ class ExprSubstr(Expr):
     end: Expr
 
     def type_check(self, st: SymbolTable) -> Expression:
-        input_type = self.left.type_check(st)
+        input_type = self.input.type_check(st)
         if input_type.output != BaseType.VARCHAR:
             raise TypeMismatchError(BaseType.VARCHAR, input_type)
         start_type = self.start.type_check(st)
@@ -118,7 +118,7 @@ class ExprSubstr(Expr):
         if end_type.output != BaseType.INT:
             raise TypeMismatchError(BaseType.INT, end_type)
         return Expression(
-            Schema.concat(input_type.inputs),
+            input_type.inputs,
             BaseType.VARCHAR
         )
 
