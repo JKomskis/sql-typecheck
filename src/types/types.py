@@ -61,23 +61,28 @@ class Schema(Type):
 
     @classmethod
     def equals(cls, left, right):
-        leftdict = {}
-        for field in left.fields:
-            if left.fields[field] not in leftdict:
-                leftdict.update({left.fields[field] : 0})
-            else:
-                leftdict[left.fields[field]] += 1
+        # dictionnaries are ordered
+        leftlist = list(left.fields.items())
+        rightlist = list(right.fields.items())
         
-        rightdict = {}
-        for field in right.fields:
-            if right.fields[field] not in rightdict:
-                rightdict.update({right.fields[field] : 0})
-            else:
-                rightdict[right.fields[field]] += 1
-        
-        if rightdict == leftdict:
-            return True
-        return False
+        if len(leftlist) != len(rightlist):
+            return False
+
+        for i in range (0, len(leftlist)):
+            if leftlist[i][1] != rightlist[i][1]:
+                return False
+        return True
+
+    @classmethod
+    def merge_fields(cls, left, right):
+        leftlist = list(left.fields.items())
+        rightlist = list(right.fields.items())
+        newfields = {}
+        for i in range (0, len(leftlist)):
+            name = leftlist[i][0] + "_" + rightlist[i][0]
+            newfields.update({name: leftlist[i][1]})
+
+        return Schema(newfields)
 
     def expand(self, table_name: str) -> Schema:
         new_fields = {}

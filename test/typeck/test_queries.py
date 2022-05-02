@@ -507,14 +507,17 @@ class TestQueryUnion(unittest.TestCase):
                 QueryTable("students"),
                 QueryTable("students_2")
             ]).type_check(st), 
-                ("ss_s2", TestQueryUnion.student_table_schema)
+                ("ss_s2", Schema.merge_fields(
+                    TestQueryUnion.student_table_schema, 
+                    TestQueryUnion.student_table_schema)
+                )
         )
 
         with self.assertRaises(TypeMismatchError):
             QueryUnion([
                     QueryTable("students"),
                     QueryTable("students_2")
-                ]).type_check(st_nomatch), 
+                ]).type_check(st_nomatch)
         
                 
             
@@ -537,7 +540,7 @@ class TestQueryUnion(unittest.TestCase):
             ]).type_check(st),
             
             ("ss_ss", Schema({
-                "ssn": BaseType.INT
+                "ssn_ssn": BaseType.INT
             }))
         )
 
@@ -571,18 +574,18 @@ class TestQueryUnion(unittest.TestCase):
             ]).type_check(st), 
 
             ("se_s2", Schema({
-                "students.ssn": BaseType.INT,
-                "students.gpa": BaseType.INT,
-                "students.year": BaseType.INT,
-                "students.grade": BaseType.INT,
-                "students.graduate": BaseType.BOOL,
-                "students.undergraduate": BaseType.BOOL,
-                "enrolled.ssn": BaseType.INT,
-                "enrolled.gpa": BaseType.INT,
-                "enrolled.year": BaseType.INT,
-                "enrolled.grade": BaseType.INT,
-                "enrolled.graduate": BaseType.BOOL,
-                "enrolled.undergraduate": BaseType.BOOL
+                "students.ssn_students.ssn": BaseType.INT,
+                "students.gpa_students.gpa": BaseType.INT,
+                "students.year_students.year": BaseType.INT,
+                "students.grade_students.grade": BaseType.INT,
+                "students.graduate_students.graduate": BaseType.BOOL,
+                "students.undergraduate_students.undergraduate": BaseType.BOOL,
+                "enrolled.ssn_enrolled.ssn": BaseType.INT,
+                "enrolled.gpa_enrolled.gpa": BaseType.INT,
+                "enrolled.year_enrolled.year": BaseType.INT,
+                "enrolled.grade_enrolled.grade": BaseType.INT,
+                "enrolled.graduate_enrolled.graduate": BaseType.BOOL,
+                "enrolled.undergraduate_enrolled.undergraduate": BaseType.BOOL
             })
         ))
         # the above typing should be different. union the types that match.
@@ -639,7 +642,8 @@ class TestQueryIntersect(unittest.TestCase):
                 QueryTable("students"),
                 QueryTable("students_2")
             ]).type_check(st), 
-                ("ss_s2", TestQueryIntersect.student_table_schema)
+                ("ss_s2", Schema.merge_fields(TestQueryIntersect.student_table_schema,
+                TestQueryIntersect.student_table_schema))
         )
 
         with self.assertRaises(TypeMismatchError):
@@ -669,7 +673,7 @@ class TestQueryIntersect(unittest.TestCase):
                 )
             ]).type_check(st),
                 ("ss_ss", Schema({
-                    "ssn": BaseType.INT
+                    "ssn_ssn": BaseType.INT
                 }))
         )
 
@@ -701,18 +705,18 @@ class TestQueryIntersect(unittest.TestCase):
                 )
             ]).type_check(st),
             ("se_s2", Schema({
-                "students.ssn": BaseType.INT,
-                "students.gpa": BaseType.INT,
-                "students.year": BaseType.INT,
-                "students.grade": BaseType.INT,
-                "students.graduate": BaseType.BOOL,
-                "students.undergraduate": BaseType.BOOL,
-                "enrolled.ssn": BaseType.INT,
-                "enrolled.gpa": BaseType.INT,
-                "enrolled.year": BaseType.INT,
-                "enrolled.grade": BaseType.INT,
-                "enrolled.graduate": BaseType.BOOL,
-                "enrolled.undergraduate": BaseType.BOOL
+                "students.ssn_students.ssn": BaseType.INT,
+                "students.gpa_students.gpa": BaseType.INT,
+                "students.year_students.year": BaseType.INT,
+                "students.grade_students.grade": BaseType.INT,
+                "students.graduate_students.graduate": BaseType.BOOL,
+                "students.undergraduate_students.undergraduate": BaseType.BOOL,
+                "enrolled.ssn_enrolled.ssn": BaseType.INT,
+                "enrolled.gpa_enrolled.gpa": BaseType.INT,
+                "enrolled.year_enrolled.year": BaseType.INT,
+                "enrolled.grade_enrolled.grade": BaseType.INT,
+                "enrolled.graduate_enrolled.graduate": BaseType.BOOL,
+                "enrolled.undergraduate_enrolled.undergraduate": BaseType.BOOL
             }))
 
         )
@@ -752,7 +756,8 @@ class TestQueryIntersectUnion(unittest.TestCase):
                     QueryTable("students_3")
                 ])
             ]).type_check(st),
-                ("ss_s3", TestQueryIntersect.student_table_schema)
+                ("ss_s3", Schema.merge_fields(Schema.merge_fields(TestQueryIntersect.student_table_schema,
+                TestQueryIntersect.student_table_schema), TestQueryIntersect.student_table_schema))
         )
 
     def test_select_union_intersect(self):
@@ -786,7 +791,7 @@ class TestQueryIntersectUnion(unittest.TestCase):
                 ])
             ]).type_check(st),
                 ("ss_ss", Schema({
-                    "ssn" : BaseType.INT
+                    "ssn_ssn_ssn_ssn" : BaseType.INT
                 }))
 
         )
