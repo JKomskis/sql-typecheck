@@ -297,8 +297,72 @@ class TestQuerySelectWhereGroupByHaving(unittest.TestCase):
                     HAVING s.name = \"\""""
             ).type_check(SymbolTable())
 
-# TODO:
-# class TestQueryUnion(unittest.TestCase):
 
-# TODO:
-# class TestQueryIntersect(unittest.TestCase):
+class TestQueryUnion(unittest.TestCase):
+    def test_query_union(self):
+        self.assertEqual(
+            stmt_sequence.parse(
+                f"""{student_create_table_statement}
+                    {enrolled_create_table_statement}
+                    {course_create_table_statement}
+                    SELECT s.name
+                    FROM student AS s
+                    WHERE s.gpa = 4
+                    UNION
+                    SELECT s.name
+                    FROM student AS s
+                    WHERE s.gpa = 3"""
+            ).type_check(SymbolTable()),
+            ("ss_ss", Schema({
+                "name_name": BaseType.VARCHAR
+            }))
+        )
+
+        with self.assertRaises(TypeMismatchError):
+            stmt_sequence.parse(
+                f"""{student_create_table_statement}
+                    {enrolled_create_table_statement}
+                    {course_create_table_statement}
+                    SELECT s.name
+                    FROM student AS s
+                    WHERE s.gpa = 4
+                    UNION
+                    SELECT e.course_id
+                    FROM enrolled AS e
+                    WHERE e.grade = 90"""
+            ).type_check(SymbolTable())
+
+
+class TestQueryIntersect(unittest.TestCase):
+    def test_query_intersect(self):
+        self.assertEqual(
+            stmt_sequence.parse(
+                f"""{student_create_table_statement}
+                        {enrolled_create_table_statement}
+                        {course_create_table_statement}
+                        SELECT s.name
+                        FROM student AS s
+                        WHERE s.gpa = 4
+                        INTERSECT
+                        SELECT s.name
+                        FROM student AS s
+                        WHERE s.graduate"""
+            ).type_check(SymbolTable()),
+            ("ss_ss", Schema({
+                "name_name": BaseType.VARCHAR
+            }))
+        )
+
+        with self.assertRaises(TypeMismatchError):
+            stmt_sequence.parse(
+                f"""{student_create_table_statement}
+                    {enrolled_create_table_statement}
+                    {course_create_table_statement}
+                    SELECT s.name
+                    FROM student AS s
+                    WHERE s.gpa = 4
+                    INTERSECT
+                    SELECT e.course_id
+                    FROM enrolled AS e
+                    WHERE e.grade = 90"""
+            ).type_check(SymbolTable())

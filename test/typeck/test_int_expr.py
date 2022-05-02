@@ -58,7 +58,6 @@ class TestColumn(unittest.TestCase):
         })
         self.assertEqual(ExprColumn(("a1", "b")).type_check(st),
                          Expression(Schema({"a1.b": BaseType.INT}), BaseType.INT))
-        # should we test xplicitly that type checking ExprColumn(a2.b) errors?
 
     def test_column_bin_op(self):
         st = SymbolTable({
@@ -99,4 +98,3 @@ class TestColumn(unittest.TestCase):
         with self.assertRaises(TypeMismatchError):
             ExprBinaryOp(ExprColumn(
                 ("a", "b")), BinaryOp.MULTIPLICATION, ExprIntLiteral(1)).type_check(st)
-        # TODO: Handle above error

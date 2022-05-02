@@ -469,14 +469,6 @@ class TestQuerySelectWhere(unittest.TestCase):
             ).type_check(st)
 
 
-
-
-
-
-
-
-
-
 class TestQueryUnion(unittest.TestCase):
     student_table_schema = Schema({
         "ssn": BaseType.INT,
@@ -496,49 +488,46 @@ class TestQueryUnion(unittest.TestCase):
 
     def test_table_union(self):
         st = SymbolTable(
-                {"students": TestQueryUnion.student_table_schema,
-                "students_2": TestQueryUnion.student_table_schema})
-        
-        st_nomatch = SymbolTable(
-                {"students": TestQueryUnion.student_table_schema,
-                "students_2": TestQueryUnion.student_wrong_schema})
+            {"students": TestQueryUnion.student_table_schema,
+             "students_2": TestQueryUnion.student_table_schema})
 
-        self.assertEqual( QueryUnion([
-                QueryTable("students"),
-                QueryTable("students_2")
-            ]).type_check(st), 
-                ("ss_s2", Schema.merge_fields(
-                    TestQueryUnion.student_table_schema, 
-                    TestQueryUnion.student_table_schema)
-                )
+        st_nomatch = SymbolTable(
+            {"students": TestQueryUnion.student_table_schema,
+             "students_2": TestQueryUnion.student_wrong_schema})
+
+        self.assertEqual(QueryUnion([
+            QueryTable("students"),
+            QueryTable("students_2")
+        ]).type_check(st),
+            ("ss_s2", Schema.merge_fields(
+                TestQueryUnion.student_table_schema,
+                TestQueryUnion.student_table_schema)
+             )
         )
 
         with self.assertRaises(TypeMismatchError):
             QueryUnion([
-                    QueryTable("students"),
-                    QueryTable("students_2")
-                ]).type_check(st_nomatch)
-        
-                
-            
+                QueryTable("students"),
+                QueryTable("students_2")
+            ]).type_check(st_nomatch)
 
     def test_select_union(self):
         st = SymbolTable(
-                {"students": TestQueryUnion.student_table_schema})
+            {"students": TestQueryUnion.student_table_schema})
 
         self.assertEqual(QueryUnion([
-                QuerySelect(
-                    [SExpr(ExprColumn(("students", "ssn")))],
-                    QueryTable("students"),
-                    ExprColumn(("students", "graduate"))
-                ),
-                QuerySelect(
-                    [SExpr(ExprColumn(("students", "ssn")))],
-                    QueryTable("students"),
-                    ExprColumn(("students", "undergraduate"))
-                )
-            ]).type_check(st),
-            
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "ssn")))],
+                QueryTable("students"),
+                ExprColumn(("students", "graduate"))
+            ),
+            QuerySelect(
+                [SExpr(ExprColumn(("students", "ssn")))],
+                QueryTable("students"),
+                ExprColumn(("students", "undergraduate"))
+            )
+        ]).type_check(st),
+
             ("ss_ss", Schema({
                 "ssn_ssn": BaseType.INT
             }))
@@ -546,8 +535,8 @@ class TestQueryUnion(unittest.TestCase):
 
     def test_join_union(self):
         st = SymbolTable(
-                {"students": TestQueryUnion.student_table_schema,
-                "enrolled": TestQueryUnion.student_table_schema})
+            {"students": TestQueryUnion.student_table_schema,
+             "enrolled": TestQueryUnion.student_table_schema})
 
         self.assertEqual(
             QueryUnion([
@@ -571,7 +560,7 @@ class TestQueryUnion(unittest.TestCase):
                     ),
                     "s_e2"
                 )
-            ]).type_check(st), 
+            ]).type_check(st),
 
             ("se_s2", Schema({
                 "students.ssn_students.ssn": BaseType.INT,
@@ -587,29 +576,22 @@ class TestQueryUnion(unittest.TestCase):
                 "enrolled.graduate_enrolled.graduate": BaseType.BOOL,
                 "enrolled.undergraduate_enrolled.undergraduate": BaseType.BOOL
             })
-        ))
-        # the above typing should be different. union the types that match.
+            ))
 
-    # def test_mixed_union(self):
-    #     st = SymbolTable(
-    #             {"students": TestQueryUnion.student_table_schema})
-    #     self.assertEqual(
-    #         QueryUnion([
-    #             QueryTable("students"),
-    #             QuerySelect(
-    #                 [SExpr(ExprColumn(("students", "ssn")))],
-    #                 QueryTable("students"),
-    #                 ExprColumn(("students", "graduate"))
-    #             )
-    #         ]).type_check(st),
-    #         ("students", Schema({
-    #             "ssn": BaseType.INT
-    #         }))
-    #     )
-        # should the above throw a type mismatch? I think so, 
-        # as two sides of union don't have same cols.
-
-
+    def test_mixed_union(self):
+        st = SymbolTable(
+            {"students": TestQueryUnion.student_table_schema})
+        with self.assertRaises(TypeMismatchError):
+            QueryUnion([
+                QueryTable("students"),
+                QuerySelect(
+                    [SExpr(ExprColumn(("students", "ssn")))],
+                    QueryTable("students"),
+                    ExprColumn(("students", "graduate"))
+                )
+            ]).type_check(st)
+        # the above should not type check because each side of the union
+        # does not have the same amount of cols
 
 
 class TestQueryIntersect(unittest.TestCase):
@@ -631,33 +613,30 @@ class TestQueryIntersect(unittest.TestCase):
 
     def test_table_intersect(self):
         st = SymbolTable(
-                {"students": TestQueryIntersect.student_table_schema,
-                "students_2": TestQueryIntersect.student_table_schema})
-        
-        st_nomatch = SymbolTable(
-                {"students": TestQueryIntersect.student_table_schema,
-                "students_2": TestQueryIntersect.student_wrong_schema})
+            {"students": TestQueryIntersect.student_table_schema,
+             "students_2": TestQueryIntersect.student_table_schema})
 
-        self.assertEqual( QueryIntersect([
-                QueryTable("students"),
-                QueryTable("students_2")
-            ]).type_check(st), 
-                ("ss_s2", Schema.merge_fields(TestQueryIntersect.student_table_schema,
-                TestQueryIntersect.student_table_schema))
+        st_nomatch = SymbolTable(
+            {"students": TestQueryIntersect.student_table_schema,
+             "students_2": TestQueryIntersect.student_wrong_schema})
+
+        self.assertEqual(QueryIntersect([
+            QueryTable("students"),
+            QueryTable("students_2")
+        ]).type_check(st),
+            ("ss_s2", Schema.merge_fields(TestQueryIntersect.student_table_schema,
+                                          TestQueryIntersect.student_table_schema))
         )
 
         with self.assertRaises(TypeMismatchError):
             QueryIntersect([
-                    QueryTable("students"),
-                    QueryTable("students_2")
-                ]).type_check(st_nomatch), 
-        
-
-
+                QueryTable("students"),
+                QueryTable("students_2")
+            ]).type_check(st_nomatch),
 
     def test_select_intersect(self):
         st = SymbolTable(
-                {"students": TestQueryIntersect.student_table_schema})
+            {"students": TestQueryIntersect.student_table_schema})
 
         self.assertEqual(
             QueryIntersect([
@@ -672,15 +651,15 @@ class TestQueryIntersect(unittest.TestCase):
                     ExprColumn(("students", "undergraduate"))
                 )
             ]).type_check(st),
-                ("ss_ss", Schema({
-                    "ssn_ssn": BaseType.INT
-                }))
+            ("ss_ss", Schema({
+                "ssn_ssn": BaseType.INT
+            }))
         )
 
     def test_join_intersect(self):
         st = SymbolTable(
-                {"students": TestQueryIntersect.student_table_schema,
-                "enrolled": TestQueryIntersect.student_table_schema})
+            {"students": TestQueryIntersect.student_table_schema,
+             "enrolled": TestQueryIntersect.student_table_schema})
         self.assertEqual(
             QueryIntersect([
                 QueryJoin(
@@ -721,33 +700,29 @@ class TestQueryIntersect(unittest.TestCase):
 
         )
 
-    # def test_mixed_intersect(self):
-    #     st = SymbolTable(
-    #             {"students": TestQueryIntersect.student_table_schema})
+    def test_mixed_intersect(self):
+        st = SymbolTable(
+            {"students": TestQueryIntersect.student_table_schema})
 
-    #     self.assertEqual(
-    #         QueryIntersect([
-    #             QueryTable("students"),
-    #             QuerySelect(
-    #                 [SExpr(ExprColumn(("students", "ssn")))],
-    #                 QueryTable("students"),
-    #                 ExprColumn(("students", "graduate"))
-    #             )
-    #         ]).type_check(st),
-    #             ("students_students", Schema({
-    #                 "ssn": BaseType.INT
-    #             }))
-    #     )
-    # the above should not type check because each side of the intersect
-    # does not have the same amount of cols
+        with self.assertRaises(TypeMismatchError):
+            QueryIntersect([
+                QueryTable("students"),
+                QuerySelect(
+                    [SExpr(ExprColumn(("students", "ssn")))],
+                    QueryTable("students"),
+                    ExprColumn(("students", "graduate"))
+                )
+            ]).type_check(st)
+        # the above should not type check because each side of the intersect
+        # does not have the same amount of cols
 
 
 class TestQueryIntersectUnion(unittest.TestCase):
     def test_table_union_intersect(self):
         st = SymbolTable(
-                {"students": TestQueryIntersect.student_table_schema,
-                "students_2": TestQueryIntersect.student_table_schema,
-                "students_3": TestQueryIntersect.student_table_schema}) 
+            {"students": TestQueryIntersect.student_table_schema,
+             "students_2": TestQueryIntersect.student_table_schema,
+             "students_3": TestQueryIntersect.student_table_schema})
         self.assertEqual(
             QueryUnion([
                 QueryTable("students"),
@@ -756,13 +731,13 @@ class TestQueryIntersectUnion(unittest.TestCase):
                     QueryTable("students_3")
                 ])
             ]).type_check(st),
-                ("ss_s3", Schema.merge_fields(Schema.merge_fields(TestQueryIntersect.student_table_schema,
-                TestQueryIntersect.student_table_schema), TestQueryIntersect.student_table_schema))
+            ("ss_s3", Schema.merge_fields(Schema.merge_fields(TestQueryIntersect.student_table_schema,
+                                                              TestQueryIntersect.student_table_schema), TestQueryIntersect.student_table_schema))
         )
 
     def test_select_union_intersect(self):
         st = SymbolTable(
-                {"students": TestQueryIntersect.student_table_schema}) 
+            {"students": TestQueryIntersect.student_table_schema})
         self.assertEqual(
             QueryUnion([
                 QueryIntersect([
@@ -790,9 +765,8 @@ class TestQueryIntersectUnion(unittest.TestCase):
                     )
                 ])
             ]).type_check(st),
-                ("ss_ss", Schema({
-                    "ssn_ssn_ssn_ssn" : BaseType.INT
-                }))
+            ("ss_ss", Schema({
+                "ssn_ssn_ssn_ssn": BaseType.INT
+            }))
 
         )
-        

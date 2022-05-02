@@ -143,20 +143,19 @@ class QueryIntersect(Query):
 
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
         full_name = ""
-        schemas = []
         prev_name, first_schema = self.queries[0].type_check(st)
         final_schema = first_schema
 
         i = 0
         for query in self.queries:
             from_name, from_schema = query.type_check(st)
-            full_name += from_name[0] + from_name[-1]  + "_"
+            full_name += from_name[0] + from_name[-1] + "_"
             if not Schema.equals(first_schema, from_schema):
                 raise TypeMismatchError(first_schema, from_schema)
-            elif i != 0: #not first iteration
+            elif i != 0:  # not first iteration
                 final_schema = Schema.merge_fields(final_schema, from_schema)
-            i+=1
-            
+            i += 1
+
         full_name = full_name.strip("_")
         temp = full_name
         i = 0
@@ -170,35 +169,28 @@ class QueryIntersect(Query):
 class QueryUnion(Query):
     queries: List[Query]
 
-
     def type_check(self, st: SymbolTable) -> Tuple[str, Schema]:
         full_name = ""
-        schemas = []
         prev_name, first_schema = self.queries[0].type_check(st)
         final_schema = first_schema
 
         i = 0
         for query in self.queries:
             from_name, from_schema = query.type_check(st)
-            full_name += from_name[0] + from_name[-1]  + "_"
+            full_name += from_name[0] + from_name[-1] + "_"
             if not Schema.equals(first_schema, from_schema):
                 raise TypeMismatchError(first_schema, from_schema)
-            elif i != 0: #not first iteration
+            elif i != 0:  # not first iteration
                 final_schema = Schema.merge_fields(final_schema, from_schema)
-            i+=1
-            
+            i += 1
+
         full_name = full_name.strip("_")
         temp = full_name
         i = 0
         while temp in st:
             temp = full_name + "_" + str(i)
-        
-        
 
         return temp, final_schema
-
-    def get_output_table_name(self) -> str:
-        return self.from_query.get_output_table_name()
 
 
 @generate

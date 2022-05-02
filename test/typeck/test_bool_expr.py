@@ -201,14 +201,14 @@ class TestColumn(unittest.TestCase):
                 "c": BaseType.BOOL,
                 "i": BaseType.INT,
                 "s": BaseType.VARCHAR,
+                "s2": BaseType.VARCHAR,
             }),
         })
-        # TODO: add varchar expressions
-        # self.assertEqual(ExprBinaryOp(
-        #     VExprColumn(("a", "s")),
-        #     BinaryOp.LESS_THAN,
-        #     VExprColumn(("a", "s"))
-        # ).type_check(st), Expression(Schema({"s": BaseType.VARCHAR, "s": BaseType.VARCHAR}), BaseType.BOOL))
+        self.assertEqual(ExprBinaryOp(
+            ExprColumn(("a", "s")),
+            BinaryOp.LESS_THAN,
+            ExprColumn(("a", "s2"))
+        ).type_check(st), Expression(Schema({"a.s": BaseType.VARCHAR, "a.s2": BaseType.VARCHAR}), BaseType.BOOL))
         self.assertEqual(ExprBinaryOp(
             ExprColumn(("a", "b")),
             BinaryOp.EQUALS,
