@@ -150,7 +150,7 @@ class QueryIntersect(Query):
             from_name, from_schema = query.type_check(st)
             # from_schema = from_schema.simplify()
             full_name += from_name[0] + from_name[-1] + "_"
-            if first_schema != from_schema:
+            if not Schema.equals(first_schema, from_schema):
                 raise TypeMismatchError(first_schema, from_schema)
             
         full_name = full_name.strip("_")
